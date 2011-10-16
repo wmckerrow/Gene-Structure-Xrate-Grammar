@@ -5,16 +5,35 @@
 using namespace std;
 
 struct TreeNode {
-	string NodeLabel;			                      //the node label
+	string NodeLabel;			                    //the node label
 	TreeNode *children[MAXCHILDREN];				//array of pointers to the children
 };
 
-TreeNode *ParseTree (string Newick, TreeNode *newtree) {
+void PrintTree (TreeNode *root) {  //preorder print the tree. only used for debugging.
+	if (root != NULL) {
+		cout << root->NodeLabel << " ";
+		for (int i=0;i<MAXCHILDREN;i++) {
+			PrintTree( root->children[i] );
+		}
+	}
+}
+
+int myCounter = 0;  //there must be a better way
+
+int TreeSize (TreeNode *root) {     //return the number of nodes in a tree
+	if (root != NULL) {
+		myCounter++;
+		for (int i=0;i<MAXCHILDREN;i++) {
+			TreeSize(root->children[i]);
+		}
+	}
+	return myCounter;
+}
+
+TreeNode *ParseTree (string Newick) {
+	TreeNode *newtree;
 	newtree=new TreeNode;
 	newtree->NodeLabel=Newick;
-	if (Newick.size()<=3) {
-		return 0;
-	}
 	int startpos;
 	if (Newick[0]=='(') {
 		startpos=1;
@@ -47,12 +66,27 @@ TreeNode *ParseTree (string Newick, TreeNode *newtree) {
 		for (int i=0; i<MAXCHILDREN; i++) {
 			if (zerocommas[i+1] != 0) {
 				tempstring=Newick.substr(zerocommas[i]+1,zerocommas[i+1]-zerocommas[i]-1);
-				cout << Newick << "->" << tempstring << endl;
-				newtree->children[i]=ParseTree(tempstring,newtree->children[i]);
+				//cout << Newick << "->" << tempstring << endl;
+				newtree->children[i]=ParseTree(tempstring);
 			}
 		}
 	}
 	return newtree;
+}
+
+void FullPrintTree (TreeNode *root) {   //print locations of nodes and children in memory. for debugging only
+	if (root != NULL) {
+		cout << "For node at " << root << endl;
+		cout << "The children are at ";
+		for (int i=0; i<MAXCHILDREN; i++) {
+			cout << root->children[i] << " ";
+		}
+		cout << endl;
+		cout << "and the label is " << root->NodeLabel << endl;
+		for (int i=0;i<MAXCHILDREN;i++) {
+			FullPrintTree( root->children[i] );
+		}
+	}
 }
 
 void PrintTreeConnections (TreeNode *root) {
@@ -66,26 +100,22 @@ void PrintTreeConnections (TreeNode *root) {
 	}
 }
 
-void PrintTree (TreeNode *root) {  //preorder print the tree. only used for debugging.
-	if (root != NULL) {
-		cout << root->NodeLabel << " ";
-		for (int i=0;i<MAXCHILDREN;i++) {
-			PrintTree( root->children[i] );
-		}
-	}
-}
-
 int main() {
 	string NewickTree;
-//	cin >> NewickTree;
-	NewickTree = "(A,(B,C))";
+	//NewickTree = "(A,(B,(C,D,E)))";
+	NewickTree = "((A,B),(C,(D,E)))";
+	//	cin >> NewickTree;
 	TreeNode *newtree;
-	newtree=ParseTree(NewickTree,newtree);
+	newtree=ParseTree(NewickTree);
 	cout << endl;
 	cout << endl;
-	PrintTreeConnections(newtree);
+	//PrintTreeConnections(newtree);
 	cout << endl;
 	cout << endl;
-	PrintTree(newtree);
+	//PrintTree(newtree);
 	cout << endl;
+	cout << endl;
+	myCounter=0;
+	//cout << TreeSize(newtree) << endl;
+	FullPrintTree(newtree);
 }

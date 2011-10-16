@@ -8,21 +8,25 @@ TreeList: This is an element of the linked list of trees that holds the sequence
 
 
 FUNCTIONS:
-PrintTree: This prints labels of the tree. Prints the label on the node its given and then calls itself on each of the child nodes. It is not used, but is useful for debugging.
+PrintTree: This prints labels of a tree. Prints the label on the node its given and then calls itself on each of the child nodes. It is not used, but is useful for debugging.
 
 
-TreeSize: This returns the number of nodes in a tree. Right now if it is at a node it adds one to a global variable called myCounter and calls itself at each of the child nodes.
+TreeSize: This returns the number of nodes in a tree. Uses a recursive design and the formula: treesize=1+SUM_children(treesize).
 
 
-TreeToArray: Given a tree and an array this function puts the labels of the tree nodes into the array. It uses the same structure as print tree, but also uses the global variable myCounter to make sure that labels are put into the right spot on the array. (I don't need to return a pointer.)
+TreeToArray: Given a tree and an array this function puts the labels of the tree nodes into the array. It uses the same structure as print tree, but also uses the global variable myCounter to make sure that labels are put into the right spot on the array. (A stack or pointer would get rid of need for myCounter.)
 
 
 NodeLocationsArray: This function puts information describing the location of each node in a tree into an array. The location of a node is stored in an int array of size MAXDEPTH. Given a location array we find the node referred to as follows. We start at the root of the tree and look at the first integer in the array (call it n). If n is -1 then we have found the node. Otherwise we follow the pointer at children[n] and repeat the process. Therefore the array {1,0,-1} means start at the root. Follow to child number 1. The node we are looking for is that node's child 0.
 
-Currently the function works similarly to TreeToArray in that it saves the location of the node its on and then calls itself at each of its child nodes. As a result it returns the locations in the wrong order for mutation. I think by switching to a loop I can clean up this function and make it return in the right order. Right now, the function is given the node of a tree and an array to put the data into. It also needs to know how far the node is from the root, the location of its parent and its child number to figure out the location of the current node.
+Currently the function works similarly to TreeToArray in that it saves the location of the node its on and then calls itself at each of its child nodes. It seems like a better design to use a loop and queue. This appears in Generator2.cpp, but it doesn't work yet.
 
 
-MakeTree: Currently this returns a pointer to the following tree: ((()x,()x)x,()x)x with labels all equal to the input character. Later this function will read a tree structure from file, but I'm not yet sure how to do this.
+ParseTree:
+This creates a tree from a string in Newick format. Currently it does not accept branch lengths. It works by finding the commas that separate children at each depth. If the string begins with '(' then the first and last characters are ignored. We then move along the string counting the number of unbalanced '('. If at any point we meet a ',' when there are no unbalanced '(' then we save that location. This ',' separate the children. We create a new TreeNode for the entire string and then call ParseTree on the substrings separated by the saved comma locations. These child trees are then connected to the root node. Currently this function has a couple bugs. While it works in the NewickParser.cpp file, in the Generator.cpp, for some trees it creates extra child pointers that cause segfaults. This also happens if I tree to read parameters (unrelated to the tree) from file.
+
+
+MakeTree: Calls ParseTree and gives all the nodes a given label.
 
 
 CopyTree: This function returns a pointer to a copy of this input tree. It also needs to be sent a temporary TreeNode pointer to keep track of the tree its creating. The function copies label for the root of the old tree to the label for the root of the new tree. Then it calls copy tree on each of the child nodes of the old tree's root and attaches to copies to the new trees root.
@@ -45,6 +49,6 @@ We begin by making a temporary tree (mytree.) We use this tree to get the number
 
 Next we initialize the linked list of trees and run the Markov process. The process continues as long as it is not in state 4. The model starts at state 0 and then proceeds to state 1. At state 1 it adds a tree labeled with 'x' to the end of the chain and with either goes to state 4 or state 2. In state 2, it adds a tree labeled with 'e' and then proceeds to state 1 or state 3. At state 3 it adds a tree labeled with 'i' and proceeds to state 2.
 
-Then we mutate the tree. Currently the only possible mutation is xe to (xxe/xee). Skipping the root, we go through the nodes locations given by NodeLocationsArray (currently not in the right order.) We move down the linked list with a pair of pointers at adjacent TreeLists. We follow these pointers to find the adjacent nodes given by the node location. If the labels are and 'x' followed by 'e', then the mutation might occur. If it does we copy the second tree and relabel the current node and all its descendants 'x'. Then we add insert this new tree between the two pointers.
+Then we mutate the tree. Skipping the root, we go through the node locations given by NodeLocationsArray. We move down the linked list with a pair of pointers at adjacent TreeLists. We follow these pointers to find the adjacent nodes given by the node location. Depending on what these labels are, certain mutations are possible. We determine which if any of these occur using a random number. Only one mutation is allowed per location. Currently the only mutations that occur are those which add more trees. For example the exon removal mutation: xe…ex -> xx…xx does not occur.
 
 Finally we use TreeToArray to put all of the node label on all of the trees into a large matrix. We then print this matrix to the standard out.
