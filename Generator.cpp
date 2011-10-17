@@ -5,24 +5,6 @@
 #include <fstream>
 using namespace std;
 
-//PARAMETERS. These will be read from file soon.
-float EtoI=0.2;     //Probability of going from state E to state I. Otherwise we go from state E to state X.
-float XtoEnd=0.1;   //Probability of ending any given time we are in state X. Otherwise we go to state E.
-int BranchLength = 1;    //How many opportunites there are for mutation before reaching next node. Not used
-
-float xetoxx=0.1;   //Prob of shortening an exon preceeded by intergenic
-float xetoee=0.1;   //Prob of lengthening an exon preceeded by intergenic
-float xtoxex=0.05;  //Prob of inserting an exon into an intergenic sequence
-float extoxx=0.05;  //etc
-float extoee=0.05;
-float eitoii=0.05;
-float eitoee=0.05;
-float etoexe=0.025;
-float etoeie=0.025;
-float ietoii=0.1;
-float ietoee=0.1;
-float itoiei=0.05;
-
 //The node of a tree. It contains a single character label and pointers to its daughter nodes.
 struct TreeNode {
 	char x;			                      //the node label
@@ -147,6 +129,15 @@ TreeNode *ParseTree (string Newick) {   //build a tree from a Newick tree string
 				//cout << Newick << "->" << tempstring << endl;
 				newtree->children[i]=ParseTree(tempstring);  //build that child and attach it to the root
 			}
+			else {
+				newtree->children[i] = NULL;
+			}
+
+		}
+	}
+	else {
+		for (int i=0; i<MAXCHILDREN; i++) {
+			newtree->children[i] = NULL;
 		}
 	}
 	return newtree;
@@ -238,7 +229,8 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	inFile >> Newick;
-	//inFile >> EtoI>>XtoEnd>>xetoxx;  //This line somehow causes the tree to have extra child pointers that cause segfaults.
+	float EtoI,XtoEnd,xetoxx,xetoee,xtoxex,extoxx,extoee,eitoii,eitoee,etoexe,etoeie,ietoii,ietoee,itoiei;
+	inFile >> EtoI>>XtoEnd>>xetoxx>>xetoee>>xtoxex>>extoxx>>extoee>>eitoii>>eitoee>>etoexe>>etoeie>>ietoii>>ietoee>>itoiei;
 	srand((unsigned)time(0)); //seed random number generator
 	TreeNode *mytree;         //make a temporary tree to find the size and node locations for that tree
 	TreeNode *testtree;
@@ -246,7 +238,7 @@ int main(int argc, char *argv[])
 	//FullPrintTree(mytree);
 	//cout << "done print" << endl;
 		
-	RelabelTree(mytree,'e'); //The segfault happens here if we try to read parameters from file. Segfault also happens here if use the tree in bug.gene.
+	RelabelTree(mytree,'e');
 	int NumNodes;
 	NumNodes = TreeSize(mytree);  //we need to know how many nodes in tree so we know how much memory to set aside for their loactions.
 	int TempNodeLocations[NumNodes*MAXDEPTH];

@@ -1,6 +1,6 @@
 ((A,B),(C,D))
-0.2 0.1 0.2
+0.2 0.1 0.1 0.1 0.05 0.05 0.05 0.05 0.05 0.025 0.025 0.1 0.1 0.05
 
 File Format is
 Tree string in Newick Format
-EtoI XtoEnd xetoxx
+EtoI XtoEnd xetoxx xetoee xtoxex extoxx extoee eitoii eitoee etoexe etoeie ietoii ietoee itoiei
