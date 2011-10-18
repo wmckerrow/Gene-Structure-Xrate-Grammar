@@ -9,6 +9,8 @@ using namespace std;
 struct TreeNode {
 	char x;			                      //the node label
 	TreeNode *children[MAXCHILDREN];      //array of pointers to the children
+	string NodeLabel;                     //Node label for .stk file generation
+	bool leaf;
 };
 
 //Element of the linked list of trees contains a pointer to the root node of a tree
@@ -91,55 +93,69 @@ void *NodeLocationsArray (TreeNode *root, int TheArray[], int depth, int ParentL
 	}
 }	
 
-TreeNode *ParseTree (string Newick) {   //build a tree from a Newick tree string
+TreeNode *ParseTree (string Newick) {
+	int lastclose=Newick.size()-1;
+	while (Newick[lastclose] != ')' && lastclose>=0) {
+		lastclose--;
+	}
+	string labelandlength=Newick.substr(lastclose+1,Newick.size()-lastclose);
+	int colon=0;
+	while (labelandlength[colon] != ':' && colon < labelandlength.size()) {
+		colon++;
+	}
+	string justlabel = labelandlength.substr(0,colon);
+	Newick=Newick.substr(0,lastclose+1);
 	TreeNode *newtree;
 	newtree=new TreeNode;
+	newtree->NodeLabel=justlabel;
 	int startpos;
-	if (Newick[0]=='(') { //if the entire string is enclosed in parens we want to ignore them
+	if (Newick[0]=='(') {
 		startpos=1;
 	}
 	else {
 		startpos=0;
 	}
 	int unclosed=0;
-	int zerocommas[MAXCHILDREN+1]; //we find commas at 0 parenthesis depth. these will divide string into the children of the root node
+	int zerocommas[MAXCHILDREN+1];
 	for (int i=0; i<MAXCHILDREN+1; i++) {
 		zerocommas[i]=0;
 	}
-	zerocommas[0]=startpos-1; //where the first child starts
+	zerocommas[0]=startpos-1;
 	int commanum=1;
 	string tempstring;
-	for (int i=startpos; i<=Newick.size()-startpos; i++) {  //count # '(' minus # ')' to get parens depth
+	for (int i=startpos; i<=Newick.size()-startpos; i++) {
 		if (Newick[i]=='(') {
 			unclosed++;
 		}
 		if (Newick[i]==')') {
 			unclosed--;
 		}
-		if (unclosed==0 && Newick[i]==',') {  //make node of where there are ','s at 0 parens depth
+		if (unclosed==0 && Newick[i]==',') {
 			zerocommas[commanum]=i;
 			commanum++;
 		}
 	}
-	zerocommas[commanum]=Newick.size()-startpos;  //end of the last child
-	if (zerocommas[2] != 0) {    //if there are no zero depth commas then we want to terminate
+	zerocommas[commanum]=Newick.size()-startpos;
+	if (zerocommas[2] != 0) {
+		newtree->leaf=0;
 		for (int i=0; i<MAXCHILDREN; i++) {
 			if (zerocommas[i+1] != 0) {
-				tempstring=Newick.substr(zerocommas[i]+1,zerocommas[i+1]-zerocommas[i]-1);  //remove the part of the string describing each child
+				tempstring=Newick.substr(zerocommas[i]+1,zerocommas[i+1]-zerocommas[i]-1);
 				//cout << Newick << "->" << tempstring << endl;
-				newtree->children[i]=ParseTree(tempstring);  //build that child and attach it to the root
+				newtree->children[i]=ParseTree(tempstring);
 			}
 			else {
-				newtree->children[i] = NULL;
+				newtree->children[i]=NULL;
 			}
-
 		}
 	}
 	else {
+		newtree->leaf=1;
 		for (int i=0; i<MAXCHILDREN; i++) {
-			newtree->children[i] = NULL;
+			newtree->children[i]=NULL;
 		}
 	}
+	
 	return newtree;
 }
 
@@ -206,6 +222,20 @@ char FindLabel (TreeNode *tree, int local[MAXDEPTH]) {      //find the label of 
 	return tree->x;
 }
 
+bool FindLeaf (TreeNode *tree, int local[MAXDEPTH]) {      //find out whether a node is a leaf
+	int i=0;
+	while (local[i] != -1) {
+		if (tree->children[local[i]] != NULL) {
+			tree=tree->children[local[i]];
+		}
+		else {
+			cout << "Warning: Trying to find a label that doesn't exist." << endl;
+		}
+		i++;
+	}
+	return tree->leaf;
+}
+
 TreeNode *MakeTree(char label, TreeNode *templatetree) {  //returns the location of a new tree with nodes labeled label.
 	TreeNode *newtree;
 	newtree = CopyTree(templatetree,newtree);
@@ -213,11 +243,23 @@ TreeNode *MakeTree(char label, TreeNode *templatetree) {  //returns the location
 	return newtree;
 }
 
+void *NodeLabelToArray (TreeNode *root, string TheArray[]) {        //return an array containing the node labels of a tree 
+	if (root !=NULL) {
+		TheArray[myCounter]=root->NodeLabel;
+		myCounter++;
+		for (int i=0;i<MAXCHILDREN;i++) {
+			NodeLabelToArray(root->children[i],TheArray);
+		}
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	//SET UP STEP
-	if (argc == 1) {
-		cerr << "Please include an input file." << endl;
+	srand((unsigned)time(0)); //seed random number generator. Took a vacation...
+	//srand(1234345234);
+	if (argc < 3) {
+		cerr << "Please use Generator inputfile outputfile" << endl;
 		exit(1);
 	}
 	ifstream inFile;
@@ -231,14 +273,13 @@ int main(int argc, char *argv[])
 	inFile >> Newick;
 	float EtoI,XtoEnd,xetoxx,xetoee,xtoxex,extoxx,extoee,eitoii,eitoee,etoexe,etoeie,ietoii,ietoee,itoiei;
 	inFile >> EtoI>>XtoEnd>>xetoxx>>xetoee>>xtoxex>>extoxx>>extoee>>eitoii>>eitoee>>etoexe>>etoeie>>ietoii>>ietoee>>itoiei;
-	srand((unsigned)time(0)); //seed random number generator
+	inFile.close();
 	TreeNode *mytree;         //make a temporary tree to find the size and node locations for that tree
 	TreeNode *testtree;
 	mytree = ParseTree(Newick);
 	//FullPrintTree(mytree);
 	//cout << "done print" << endl;
 		
-	RelabelTree(mytree,'e');
 	int NumNodes;
 	NumNodes = TreeSize(mytree);  //we need to know how many nodes in tree so we know how much memory to set aside for their loactions.
 	int TempNodeLocations[NumNodes*MAXDEPTH];
@@ -250,6 +291,10 @@ int main(int argc, char *argv[])
 			NodeLocations[i][j]=TempNodeLocations[i*MAXDEPTH+j];
 		}
 	}
+	string NodeLabelArray[NumNodes];
+	myCounter = 0;
+	NodeLabelToArray(mytree,NodeLabelArray);
+	
 	TreeList *llroot;         //the root of the linked list of trees
 	TreeList *llconductor;    //a pointer that moves along the list "doing stuff"
 	llroot = new TreeList;
@@ -273,6 +318,7 @@ int main(int argc, char *argv[])
 				llconductor->tree=MakeTree('x',mytree);
 				llconductor->next=NULL;
 				r = (float)rand()/(float)RAND_MAX;
+				//cout << r << endl;
 				if (r < XtoEnd) {
 					state = 4;
 				}
@@ -460,10 +506,43 @@ int main(int argc, char *argv[])
 		//    PrintTree(llconductor->tree);
 		//    cout << endl;
 	}
+	
 	for (int j=0;j<NumNodes;j++) {
+		cout << NodeLabelArray[j];
+		for (int k=0; k<10-NodeLabelArray[j].size(); k++) {
+			cout << " ";
+		}
 		for (i=0;i<chainleng;i++) {
 			cout << data[j][i];
 		}
 		cout << endl;
 	}
+	
+	string response;
+	ifstream testFile;
+	testFile.open (argv[2]);
+	if (testFile) {
+		cerr << argv[2] << " already exists. Okay to overwrite? (type yes to continue) ";
+		cin >> response;
+	}
+	if (response != "yes") {
+		exit(1);
+	}
+	
+	ofstream outFile;
+	outFile.open (argv[2]);
+	outFile << "#=GF NH " << Newick << ";" << endl << endl;
+	for (int j=0;j<NumNodes;j++) {
+		if (FindLeaf(mytree,NodeLocations[j]) == 1) {
+			outFile << NodeLabelArray[j];
+			for (int k=0; k<10-NodeLabelArray[j].size(); k++) {
+				outFile << " ";
+			}
+			for (i=0;i<chainleng;i++) {
+				outFile << data[j][i];
+			}
+			outFile << endl;
+		}
+	}
+	outFile.close();
 }

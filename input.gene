@@ -1,6 +1,6 @@
-((A,B),(C,D))
-0.2 0.1 0.1 0.1 0.05 0.05 0.05 0.05 0.05 0.025 0.025 0.1 0.1 0.05
+(((A1:.1,A2:.1,A3:.1)A:.1,(B1:.1,B2:.1,B3:.1)B:.1)AB:.1,(C1:.1,C2:.1,C3:.1)C:.1)ABC
+0.2 0.1 0.1 0.1 0.0 0.05 0.05 0.05 0.05 0.0 0.0 0.1 0.1 0.0
 
 File Format is
-Tree string in Newick Format
+Tree string in Newick Format (without spaces)
 EtoI XtoEnd xetoxx xetoee xtoxex extoxx extoee eitoii eitoee etoexe etoeie ietoii ietoee itoiei
