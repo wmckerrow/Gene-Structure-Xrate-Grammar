@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 This project is to create a grammar that will be used with Ian Holmes's xrate software. It will annotate genome sequences in a phylogenetic tree.
 
 Generator takes an input file organized like input.gene and creates a file in stockholm format that can be fed into crate.
 
 If the outputs of xrate and Generator are piped into files then Difference finder can read these files to find out where crate made mistakes.
+=======
+This project is to create a grammar that will be used with Ian Holmes's xrate software. It will annotate genome sequences connected by a phylogenetic tree.
+>>>>>>> 557b77dd08769c7fa6556b0fa806baf988de8c0f

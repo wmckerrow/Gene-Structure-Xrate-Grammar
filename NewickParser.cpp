@@ -31,9 +31,20 @@ int TreeSize (TreeNode *root) {     //return the number of nodes in a tree
 }
 
 TreeNode *ParseTree (string Newick) {
+	int lastclose=Newick.size()-1;
+	while (Newick[lastclose] != ')' && lastclose>=0) {
+		lastclose--;
+	}
+	string labelandlength=Newick.substr(lastclose+1,Newick.size()-lastclose);
+	int colon=0;
+	while (labelandlength[colon] != ':' && colon < labelandlength.size()) {
+		colon++;
+	}
+	string justlabel = labelandlength.substr(0,colon);
+	Newick=Newick.substr(0,lastclose+1);
 	TreeNode *newtree;
 	newtree=new TreeNode;
-	newtree->NodeLabel=Newick;
+	newtree->NodeLabel=justlabel;
 	int startpos;
 	if (Newick[0]=='(') {
 		startpos=1;
@@ -69,8 +80,18 @@ TreeNode *ParseTree (string Newick) {
 				//cout << Newick << "->" << tempstring << endl;
 				newtree->children[i]=ParseTree(tempstring);
 			}
+			else {
+				newtree->children[i]=NULL;
+			}
 		}
 	}
+	else {
+		cout << newtree->NodeLabel << endl;
+		for (int i=0; i<MAXCHILDREN; i++) {
+			newtree->children[i]=NULL;
+		}
+	}
+
 	return newtree;
 }
 
@@ -102,14 +123,13 @@ void PrintTreeConnections (TreeNode *root) {
 
 int main() {
 	string NewickTree;
-	//NewickTree = "(A,(B,(C,D,E)))";
-	NewickTree = "((A,B),(C,(D,E)))";
+	NewickTree = "(((A1:.1,A2:.1,A3:.1)A:.1,(B1:.1,B2:.1,B3:.1)B:.1)AB:.1,(C1:.1,C2:.1,C3:.1)C:.1)ABC";
 	//	cin >> NewickTree;
 	TreeNode *newtree;
 	newtree=ParseTree(NewickTree);
 	cout << endl;
 	cout << endl;
-	//PrintTreeConnections(newtree);
+	PrintTreeConnections(newtree);
 	cout << endl;
 	cout << endl;
 	//PrintTree(newtree);
@@ -117,5 +137,5 @@ int main() {
 	cout << endl;
 	myCounter=0;
 	//cout << TreeSize(newtree) << endl;
-	FullPrintTree(newtree);
+	//FullPrintTree(newtree);
 }

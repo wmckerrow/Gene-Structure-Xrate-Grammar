@@ -524,9 +524,9 @@ int main(int argc, char *argv[])
 	if (testFile) {
 		cerr << argv[2] << " already exists. Okay to overwrite? (type yes to continue) ";
 		cin >> response;
-	}
-	if (response != "yes") {
-		exit(1);
+		if (response != "yes") {
+			exit(1);
+		}
 	}
 	
 	ofstream outFile;
