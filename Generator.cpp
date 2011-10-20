@@ -10,7 +10,7 @@ struct TreeNode {
 	char x;			                      //the node label
 	TreeNode *children[MAXCHILDREN];      //array of pointers to the children
 	string NodeLabel;                     //Node label for .stk file generation
-	bool leaf;
+	bool leaf;						      //1 for leaf, 0 otherwise
 };
 
 //Element of the linked list of trees contains a pointer to the root node of a tree
@@ -215,7 +215,7 @@ char FindLabel (TreeNode *tree, int local[MAXDEPTH]) {      //find the label of 
 			tree=tree->children[local[i]];
 		}
 		else {
-			cout << "Warning: Trying to find a label that doesn't exist." << endl;
+			cerr << "Warning: Trying to find a label that doesn't exist." << endl;
 		}
 		i++;
 	}
@@ -229,11 +229,35 @@ bool FindLeaf (TreeNode *tree, int local[MAXDEPTH]) {      //find out whether a 
 			tree=tree->children[local[i]];
 		}
 		else {
-			cout << "Warning: Trying to find a label that doesn't exist." << endl;
+			cerr << "Warning: Trying to find leaf status of a node that doesn't exist." << endl;
 		}
 		i++;
 	}
 	return tree->leaf;
+}
+
+bool FindLeafParent (TreeNode *tree, int local[MAXDEPTH]) {
+	int i=0;
+	while (local[i] != -1) {
+		if (tree->children[local[i]] != NULL) {
+			tree=tree->children[local[i]];
+		}
+		else {
+			cerr << "Warning: Trying to find leafparent status of a node that doesn't exist." << endl;
+		}
+		i++;
+	}
+	bool leafparent=0;
+	TreeNode *child;
+	for (int k=0; k<MAXCHILDREN; k++) {
+		if (tree->children[k] != NULL) {
+			child = tree->children[k];
+			if (child->leaf == 1) {
+				leafparent=1;
+			}
+		}
+	}
+	return leafparent;
 }
 
 TreeNode *MakeTree(char label, TreeNode *templatetree) {  //returns the location of a new tree with nodes labeled label.
@@ -263,16 +287,46 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	ifstream inFile;
+	if (argc > 3) {
+		if (argv[4]!="randtime") {
+			inFile.open("randint");
+			if (!inFile) {
+				cerr << "Cannot read file randint." << endl;
+			}
+			else {
+				int randint;
+				inFile >> randint;
+				srand((unsigned)randint);
+			}
+		}
+	}
+	inFile.close();
+	
+	inFile.open(argv[1]);
+	string line="start";
+	int parameterlines=-3;
+	while (line != "end") {
+		parameterlines++;
+		getline(inFile,line);
+	}
+	inFile.close();
+	
 	inFile.open(argv[1]);
 	string Newick;
 	//float EtoI, XtoEnd, xetoxx;
 	if (!inFile) {
-		cerr << "Unable to open input file " << argv[1] << endl;
+		cerr << "Unable to open input file " << argv[1] << "." << endl;
 		exit(1);
 	}
 	inFile >> Newick;
-	float EtoI,XtoEnd,xetoxx,xetoee,xtoxex,extoxx,extoee,eitoii,eitoee,etoexe,etoeie,ietoii,ietoee,itoiei;
-	inFile >> EtoI>>XtoEnd>>xetoxx>>xetoee>>xtoxex>>extoxx>>extoee>>eitoii>>eitoee>>etoexe>>etoeie>>ietoii>>ietoee>>itoiei;
+	float EtoI,XtoEnd;
+	inFile >> EtoI >> XtoEnd;
+	float xetoxx[parameterlines],xetoee[parameterlines],xtoxex[parameterlines];
+	float extoxx[parameterlines],extoee[parameterlines],eitoii[parameterlines],eitoee[parameterlines],etoexe[parameterlines],etoeie[parameterlines];
+	float ietoii[parameterlines],ietoee[parameterlines],itoiei[parameterlines];
+	for (int i=0; i<parameterlines; i++) {
+		inFile>>xetoxx[i]>>xetoee[i]>>xtoxex[i]>>extoxx[i]>>extoee[i]>>eitoii[i]>>eitoee[i]>>etoexe[i]>>etoeie[i]>>ietoii[i]>>ietoee[i]>>itoiei[i];
+	}
 	inFile.close();
 	TreeNode *mytree;         //make a temporary tree to find the size and node locations for that tree
 	TreeNode *testtree;
@@ -291,9 +345,46 @@ int main(int argc, char *argv[])
 			NodeLocations[i][j]=TempNodeLocations[i*MAXDEPTH+j];
 		}
 	}
+	
 	string NodeLabelArray[NumNodes];
 	myCounter = 0;
 	NodeLabelToArray(mytree,NodeLabelArray);
+	
+	int NumLeaves = 0;
+	for (int i=0; i<NumNodes; i++) {
+		if (FindLeaf(mytree,NodeLocations[i])) {
+			NumLeaves++;
+		}
+	}
+	
+	int NumLeafParents=0;
+	for (int i=0; i<NumNodes; i++) {
+		if (FindLeafParent(mytree,NodeLocations[i])) {
+			NumLeafParents++;
+		}
+	}
+	
+	int ratetype=-1;
+	if (parameterlines < 1) {
+		cerr << "Need paraters to run.";
+		exit(1);
+	}
+	if (parameterlines == 1) {
+		ratetype=0;
+	}
+	if (parameterlines == 2) {
+		ratetype=1;
+	}
+	if (parameterlines == NumLeafParents +1) {
+		ratetype=2;
+	}
+	if (parameterlines == NumLeaves +1) {
+		ratetype=3;
+	}
+	if (ratetype==-1) {
+		cerr << "Found " << parameterlines << "parameter lines for " << NumLeaves << " leaves and " << NumLeafParents << " leaf parents. Using constant mutation rates." << endl;
+		ratetype=0;
+	}
 	
 	TreeList *llroot;         //the root of the linked list of trees
 	TreeList *llconductor;    //a pointer that moves along the list "doing stuff"
@@ -362,16 +453,59 @@ int main(int argc, char *argv[])
 	char NextLabel;
 	
 	//MUTATION STEP
+	int ratenumber=0;
+	int	leafparentnum=0;
+	int leafnumber=0;
 	for (int i=1; i<NumNodes; i++) {   //at each of the nodes
 		llconductor=llroot->next;
 		llconductornext=llconductor->next;
+		
+		switch (ratetype) {
+			case 0:
+				ratenumber=0;
+				break;
+			case 1:
+				if (FindLeaf(mytree,NodeLocations[i])) {
+					ratenumber=1;
+				}
+				else {
+					ratenumber=0;
+				}
+				break;
+			case 2:
+				if (FindLeafParent(mytree,NodeLocations[i])) {
+					leafparentnum++;
+				}
+				if (FindLeaf(mytree,NodeLocations[i])) {
+					ratenumber=leafparentnum;
+				}
+				else {
+					ratenumber=0;
+				}
+
+				break;
+			case 3:
+				if (FindLeaf(mytree,NodeLocations[i])) {
+					leafnumber++;
+					ratenumber=leafnumber;
+				}
+				else {
+					ratenumber=0;
+				}
+				break;
+			default:
+				break;
+		}
+		
+		//cout << "rate number is " << ratenumber << " at node " << NodeLabelArray[i] << endl;
+		
 		while (llconductornext != NULL) {  //move down the linked list until we get to the end
 			ThisLabel=FindLabel(llconductor->tree,NodeLocations[i]);
 			NextLabel=FindLabel(llconductornext->tree,NodeLocations[i]);
 			r = (float)rand()/(float)RAND_MAX;   //random number between 0 and 1;
 			switch (ThisLabel) {
 				case 'x':
-					if (r<xtoxex) {  //the first possible mutation is insertion of an exon into an intergenic sequence
+					if (r<xtoxex[ratenumber]) {  //the first possible mutation is insertion of an exon into an intergenic sequence
 						temptree1=CopyTree(llconductor->tree,temptree2);
 						AddTree(temptree1,llconductor);
 						chainleng++;
@@ -381,13 +515,13 @@ int main(int argc, char *argv[])
 						chainleng++;
 					}
 					if (NextLabel=='e') {  //if it is followed by an exon then we can shorten or lengthen the exon
-						if (r>=xtoxex && r<xtoxex+xetoxx) {
+						if (r>=xtoxex[ratenumber] && r<xtoxex[ratenumber]+xetoxx[ratenumber]) {
 							temptree1 = CopyTree(llconductornext->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'x');
 							AddTree(temptree1,llconductor);
 							chainleng++;
 						}
-						if (r>=xtoxex+xetoxx && r<xtoxex+xetoxx+xetoee) {
+						if (r>=xtoxex[ratenumber]+xetoxx[ratenumber] && r<xtoxex[ratenumber]+xetoxx[ratenumber]+xetoee[ratenumber]) {
 							temptree1 = CopyTree(llconductor->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'e');
 							AddTree(temptree1,llconductor);
@@ -396,7 +530,7 @@ int main(int argc, char *argv[])
 					}
 					break;
 				case 'e':
-					if (r<etoeie) {    //we can insert an intron
+					if (r<etoeie[ratenumber]) {    //we can insert an intron
 						temptree1=CopyTree(llconductor->tree,temptree2);
 						AddTree(temptree1,llconductor);
 						chainleng++;
@@ -405,7 +539,7 @@ int main(int argc, char *argv[])
 						AddTree(temptree1,llconductor);
 						chainleng++;
 					}
-					if (r>=etoeie && r<etoeie+etoexe) {   //or we can insert an intergenic sequence
+					if (r>=etoeie[ratenumber] && r<etoeie[ratenumber]+etoexe[ratenumber]) {   //or we can insert an intergenic sequence
 						temptree1=CopyTree(llconductor->tree,temptree2);
 						AddTree(temptree1,llconductor);
 						chainleng++;
@@ -415,13 +549,13 @@ int main(int argc, char *argv[])
 						chainleng++;
 					}
 					if (NextLabel=='i') {   //if it followed by an intron then we can extend the exon into the intron of extend the intron into the exon
-						if (r>=etoeie+etoexe && r<etoeie+etoexe+eitoee) {
+						if (r>=etoeie[ratenumber]+etoexe[ratenumber] && r<etoeie[ratenumber]+etoexe[ratenumber]+eitoee[ratenumber]) {
 							temptree1 = CopyTree(llconductornext->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'e');
 							AddTree(temptree1,llconductor);
 							chainleng++;
 						}
-						if (r>=etoeie+etoexe+eitoee && r<etoeie+etoexe+eitoee+eitoii) {
+						if (r>=etoeie[ratenumber]+etoexe[ratenumber]+eitoee[ratenumber] && r<etoeie[ratenumber]+etoexe[ratenumber]+eitoee[ratenumber]+eitoii[ratenumber]) {
 							temptree1 = CopyTree(llconductor->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'i');
 							AddTree(temptree1,llconductor);
@@ -429,13 +563,13 @@ int main(int argc, char *argv[])
 						}
 					}
 					if (NextLabel=='x') {   //similarly we can shorted or lengthen an exon into an intergenic sequence
-						if (r>=etoeie+etoexe && r<etoeie+etoexe+extoee) {
+						if (r>=etoeie[ratenumber]+etoexe[ratenumber] && r<etoeie[ratenumber]+etoexe[ratenumber]+extoee[ratenumber]) {
 							temptree1 = CopyTree(llconductornext->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'e');
 							AddTree(temptree1,llconductor);
 							chainleng++;
 						}
-						if (r>=etoeie+etoexe+extoee && r<etoeie+etoexe+extoee+extoxx) {
+						if (r>=etoeie[ratenumber]+etoexe[ratenumber]+extoee[ratenumber] && r<etoeie[ratenumber]+etoexe[ratenumber]+extoee[ratenumber]+extoxx[ratenumber]) {
 							temptree1 = CopyTree(llconductor->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'x');
 							AddTree(temptree1,llconductor);
@@ -444,7 +578,7 @@ int main(int argc, char *argv[])
 					}
 					break;
 				case 'i':
-					if (r<itoiei) {   //insert an exon into an intron
+					if (r<itoiei[ratenumber]) {   //insert an exon into an intron
 						temptree1=CopyTree(llconductor->tree,temptree2);
 						AddTree(temptree1,llconductor);
 						chainleng++;
@@ -454,13 +588,13 @@ int main(int argc, char *argv[])
 						chainleng++;
 					}
 					if (NextLabel=='e') {   //if an exon sequence we can shorten or lengthen the intron into the exon.
-						if (r>=itoiei && r<itoiei+ietoii) {
+						if (r>=itoiei[ratenumber] && r<itoiei[ratenumber]+ietoii[ratenumber]) {
 							temptree1 = CopyTree(llconductornext->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'i');
 							AddTree(temptree1,llconductor);
 							chainleng++;
 						}
-						if (r>=itoiei+ietoii && r<itoiei+ietoii+ietoee) {
+						if (r>=itoiei[ratenumber]+ietoii[ratenumber] && r<itoiei[ratenumber]+ietoii[ratenumber]+ietoee[ratenumber]) {
 							temptree1 = CopyTree(llconductor->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'e');
 							AddTree(temptree1,llconductor);
@@ -544,5 +678,9 @@ int main(int argc, char *argv[])
 			outFile << endl;
 		}
 	}
+	outFile.close();
+	
+	outFile.open("randint");
+	outFile << rand();
 	outFile.close();
 }
