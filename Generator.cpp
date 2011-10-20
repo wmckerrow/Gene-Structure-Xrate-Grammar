@@ -93,37 +93,37 @@ void *NodeLocationsArray (TreeNode *root, int TheArray[], int depth, int ParentL
 	}
 }	
 
-TreeNode *ParseTree (string Newick) {
+TreeNode *ParseTree (string Newick) {    //generates a new tree from a string in newick format
 	int lastclose=Newick.size()-1;
 	while (Newick[lastclose] != ')' && lastclose>=0) {
 		lastclose--;
 	}
-	string labelandlength=Newick.substr(lastclose+1,Newick.size()-lastclose);
+	string labelandlength=Newick.substr(lastclose+1,Newick.size()-lastclose);      //everything after the last close parenthesis is the label for the root and length of the branch to the root
 	int colon=0;
 	while (labelandlength[colon] != ':' && colon < labelandlength.size()) {
 		colon++;
 	}
-	string justlabel = labelandlength.substr(0,colon);
-	Newick=Newick.substr(0,lastclose+1);
+	string justlabel = labelandlength.substr(0,colon);      //ignore the colon and everything after. it is the branch lengths. branch lengths are not yet used.
+	Newick=Newick.substr(0,lastclose+1);             //everything up to and including the last close parenthis describes the rest of the tree
 	TreeNode *newtree;
-	newtree=new TreeNode;
-	newtree->NodeLabel=justlabel;
+	newtree=new TreeNode;               //start by creating the root node
+	newtree->NodeLabel=justlabel;       //and labeling it
 	int startpos;
-	if (Newick[0]=='(') {
+	if (Newick[0]=='(') {         //the information about children is within open and closed parentheses. we ignore the outer parentheses
 		startpos=1;
 	}
 	else {
 		startpos=0;
 	}
 	int unclosed=0;
-	int zerocommas[MAXCHILDREN+1];
+	int zerocommas[MAXCHILDREN+1];     //the children will be seperated by commas that occur when parentheses are balanced
 	for (int i=0; i<MAXCHILDREN+1; i++) {
-		zerocommas[i]=0;
+		zerocommas[i]=0;    //make sure we don't reference an array element without a value
 	}
-	zerocommas[0]=startpos-1;
+	zerocommas[0]=startpos-1;     //the first child starts at the beginning
 	int commanum=1;
 	string tempstring;
-	for (int i=startpos; i<=Newick.size()-startpos; i++) {
+	for (int i=startpos; i<=Newick.size()-startpos; i++) {   //this loop finds the depth 0 commas
 		if (Newick[i]=='(') {
 			unclosed++;
 		}
@@ -135,21 +135,21 @@ TreeNode *ParseTree (string Newick) {
 			commanum++;
 		}
 	}
-	zerocommas[commanum]=Newick.size()-startpos;
+	zerocommas[commanum]=Newick.size()-startpos;     //last child ends at the end of the string
 	if (zerocommas[2] != 0) {
-		newtree->leaf=0;
+		newtree->leaf=0;     //if we write something in zerocommas[2] there must be at least one child
 		for (int i=0; i<MAXCHILDREN; i++) {
-			if (zerocommas[i+1] != 0) {
-				tempstring=Newick.substr(zerocommas[i]+1,zerocommas[i+1]-zerocommas[i]-1);
+			if (zerocommas[i+1] != 0) {    //loop through all the depth 0 commas
+				tempstring=Newick.substr(zerocommas[i]+1,zerocommas[i+1]-zerocommas[i]-1);    //and pull out the child strings
 				//cout << Newick << "->" << tempstring << endl;
-				newtree->children[i]=ParseTree(tempstring);
+				newtree->children[i]=ParseTree(tempstring);       //create a tree with the child string and attach in the proper place
 			}
 			else {
-				newtree->children[i]=NULL;
+				newtree->children[i]=NULL;    //if there are less then MAXCHILDREN children set the rest of the pointers to NULL
 			}
 		}
 	}
-	else {
+	else {       //if there are no children, we mark the node as a leaf and set all its children pointers to NULL
 		newtree->leaf=1;
 		for (int i=0; i<MAXCHILDREN; i++) {
 			newtree->children[i]=NULL;
@@ -236,7 +236,7 @@ bool FindLeaf (TreeNode *tree, int local[MAXDEPTH]) {      //find out whether a 
 	return tree->leaf;
 }
 
-bool FindLeafParent (TreeNode *tree, int local[MAXDEPTH]) {
+bool FindLeafParent (TreeNode *tree, int local[MAXDEPTH]) {     //find out if any of the children of a node are leaves
 	int i=0;
 	while (local[i] != -1) {
 		if (tree->children[local[i]] != NULL) {
@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	ifstream inFile;
-	if (argc > 3) {
+	if (argc > 3) {  //if we are running this many times in succession we cannot seed from the clock since it will run more than once in a single second
 		if (argv[4]!="randtime") {
 			inFile.open("randint");
 			if (!inFile) {
@@ -302,7 +302,7 @@ int main(int argc, char *argv[])
 	}
 	inFile.close();
 	
-	inFile.open(argv[1]);
+	inFile.open(argv[1]);  //count the number of lines in the input file until "end" and subtract 3 to get the number of lines of parameters
 	string line="start";
 	int parameterlines=-3;
 	while (line != "end") {
@@ -311,23 +311,23 @@ int main(int argc, char *argv[])
 	}
 	inFile.close();
 	
-	inFile.open(argv[1]);
+	inFile.open(argv[1]);   //open the input file to read data
 	string Newick;
-	//float EtoI, XtoEnd, xetoxx;
 	if (!inFile) {
 		cerr << "Unable to open input file " << argv[1] << "." << endl;
 		exit(1);
 	}
-	inFile >> Newick;
+	inFile >> Newick;    //get the tree string
 	float EtoI,XtoEnd;
-	inFile >> EtoI >> XtoEnd;
+	inFile >> EtoI >> XtoEnd;    //get the Markov parameters
 	float xetoxx[parameterlines],xetoee[parameterlines],xtoxex[parameterlines];
 	float extoxx[parameterlines],extoee[parameterlines],eitoii[parameterlines],eitoee[parameterlines],etoexe[parameterlines],etoeie[parameterlines];
 	float ietoii[parameterlines],ietoee[parameterlines],itoiei[parameterlines];
-	for (int i=0; i<parameterlines; i++) {
+	for (int i=0; i<parameterlines; i++) {    //get each line of mutation parameters
 		inFile>>xetoxx[i]>>xetoee[i]>>xtoxex[i]>>extoxx[i]>>extoee[i]>>eitoii[i]>>eitoee[i]>>etoexe[i]>>etoeie[i]>>ietoii[i]>>ietoee[i]>>itoiei[i];
 	}
 	inFile.close();
+	
 	TreeNode *mytree;         //make a temporary tree to find the size and node locations for that tree
 	TreeNode *testtree;
 	mytree = ParseTree(Newick);
@@ -346,25 +346,25 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	string NodeLabelArray[NumNodes];
+	string NodeLabelArray[NumNodes];   //we'll need the node labels to make the output easy to understand
 	myCounter = 0;
 	NodeLabelToArray(mytree,NodeLabelArray);
 	
-	int NumLeaves = 0;
+	int NumLeaves = 0;    //count the number of leaves
 	for (int i=0; i<NumNodes; i++) {
 		if (FindLeaf(mytree,NodeLocations[i])) {
 			NumLeaves++;
 		}
 	}
 	
-	int NumLeafParents=0;
+	int NumLeafParents=0;    //count the number of nodes which are parents of leaves
 	for (int i=0; i<NumNodes; i++) {
 		if (FindLeafParent(mytree,NodeLocations[i])) {
 			NumLeafParents++;
 		}
 	}
 	
-	int ratetype=-1;
+	int ratetype=-1;     //used the number of parameters to find out which rate type is desired
 	if (parameterlines < 1) {
 		cerr << "Need paraters to run.";
 		exit(1);
@@ -383,7 +383,7 @@ int main(int argc, char *argv[])
 	}
 	if (ratetype==-1) {
 		cerr << "Found " << parameterlines << "parameter lines for " << NumLeaves << " leaves and " << NumLeafParents << " leaf parents. Using constant mutation rates." << endl;
-		ratetype=0;
+		ratetype=0;   //default is all nodes have same mutation rate
 	}
 	
 	TreeList *llroot;         //the root of the linked list of trees
@@ -453,18 +453,18 @@ int main(int argc, char *argv[])
 	char NextLabel;
 	
 	//MUTATION STEP
-	int ratenumber=0;
-	int	leafparentnum=0;
-	int leafnumber=0;
-	for (int i=1; i<NumNodes; i++) {   //at each of the nodes
+	int ratenumber=0;   //which parameter line we are using
+	int	leafparentnum=0;   //how many leaf parents we have mutated (+1 if we are in the process of mutating a leaf parent)
+	int leafnumber=0;   //how many leaves we have mutated (+1 if we are in the process of mutating a leaf)
+	for (int i=1; i<NumNodes; i++) {   //loop through the nodes, mutating them all
 		llconductor=llroot->next;
 		llconductornext=llconductor->next;
 		
-		switch (ratetype) {
-			case 0:
+		switch (ratetype) {   //which parameter line will be used depends on the rate type
+			case 0:      //in case 0, all rates are equal
 				ratenumber=0;
 				break;
-			case 1:
+			case 1:    //in case 1, we use one line for leaves and the other for the rest of the tree
 				if (FindLeaf(mytree,NodeLocations[i])) {
 					ratenumber=1;
 				}
@@ -472,7 +472,7 @@ int main(int argc, char *argv[])
 					ratenumber=0;
 				}
 				break;
-			case 2:
+			case 2:    //in case 2, we use one line for non leaf nodes. for leaves we use a line according to which node is their parent
 				if (FindLeafParent(mytree,NodeLocations[i])) {
 					leafparentnum++;
 				}
@@ -484,7 +484,7 @@ int main(int argc, char *argv[])
 				}
 
 				break;
-			case 3:
+			case 3:     //in case three we use one line for non leaf nodes and a different line for each leaf
 				if (FindLeaf(mytree,NodeLocations[i])) {
 					leafnumber++;
 					ratenumber=leafnumber;
@@ -641,7 +641,7 @@ int main(int argc, char *argv[])
 		//    cout << endl;
 	}
 	
-	for (int j=0;j<NumNodes;j++) {
+	for (int j=0;j<NumNodes;j++) {  //return the node label together with the sequence at that node
 		cout << NodeLabelArray[j];
 		for (int k=0; k<10-NodeLabelArray[j].size(); k++) {
 			cout << " ";
@@ -652,7 +652,7 @@ int main(int argc, char *argv[])
 		cout << endl;
 	}
 	
-	string response;
+	string response;  //make sure we don't accidently delete something important
 	ifstream testFile;
 	testFile.open (argv[2]);
 	if (testFile) {
@@ -663,7 +663,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	ofstream outFile;
+	ofstream outFile;    //create a .stk file to test xrate
 	outFile.open (argv[2]);
 	outFile << "#=GF NH " << Newick << ";" << endl << endl;
 	for (int j=0;j<NumNodes;j++) {
