@@ -1,8 +1,9 @@
-#define MAXCHILDREN 4
-#define MAXDEPTH 4
+#define MAXCHILDREN 10
+#define MAXDEPTH 10
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <algorithm>
 using namespace std;
 
 //The node of a tree. It contains a single character label and pointers to its daughter nodes.
@@ -276,6 +277,19 @@ void *NodeLabelToArray (TreeNode *root, string TheArray[]) {        //return an 
 		}
 	}
 }
+
+int findheight(TreeNode *root) {
+	int height;
+	if (root->children[0]==NULL) {
+		height=0;
+	}
+	else {
+		height=max(findheight(root->children[0]),findheight(root->children[1]))+1
+	}
+	cout << height << " ";
+	return height;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -679,6 +693,8 @@ int main(int argc, char *argv[])
 		}
 	}
 	outFile.close();
+	
+	findheight(mytree);
 	
 	outFile.open("randint");
 	outFile << rand();

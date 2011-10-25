@@ -1,10 +1,10 @@
-(((A1:.1,A2:.1,A3:.1)A:.1,(B1:.1,B2:.1,B3:.1)B:.1)AB:.1,(C1:.1,C2:.1,C3:.1)C:.1)ABC
+(((A1:.1,A2:.1,A3:.1)A:.1,(B1:.1,B2:.1,B3:.1)B:.1)AB:.1,((C1:.1,C2:.1,C3:.1)C:.1,(D1:.1,D2:.1,D3:.1)D:.1)CD:.1)ABCD
 0.2 0.2
 0.1 0.1 0.0 0.05 0.05 0.05 0.05 0.0 0.0 0.1 0.1 0.0
 end
 
 File Format is
-Tree string in Newick Format (without spaces, DifferenceFinder assumes that current species are label with a single char)
+Tree string in Newick Format (without spaces)
 EtoI XtoEnd
 Parameters for main tree
 Parameters for mutation rates to leaves in depth first order. If there are 0 lines here then Generator will use same parameters throughout. If there is one, it will use that set for all leaves. If there are the number of leaf parents, a different parameter set will be used for each set of leaf siblings. If there is one line for each leaf, a different parameter will be used on each leaf.
@@ -18,3 +18,6 @@ If there are 0 lines here then Generator will use same parameters throughout.
 If there is one, it will use that set for all leaves.
 If there is one line for each leaf parent, a different parameter set will be used for each set of leaf siblings.
 If there is one line for each leaf, a different parameter will be used on each leaf.
+
+Note on tree string
+Difference finder assumes that evidence nodes and only evidence contain numbers
