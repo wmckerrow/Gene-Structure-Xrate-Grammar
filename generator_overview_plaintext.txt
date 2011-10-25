@@ -1,0 +1,60 @@
+	The goal of the generator script is to create data to test an xrate 
+grammar. It generates sequences of 'e', 'i', and 'x' for the nodes of an 
+input tree located on the first line of input.gene. 'e' stands for exon, 
+'i' for intron and 'x' for intergenic. The sequences at the leaves are then 
+dumped into a .stk file that can be read by xrate.
+	Since we want to annotate real gene sequence, to make generator a 
+useful test we want it to generate data that "looks like" real data. We 
+begin by generating a sequence of 'x' and 'i' separated by 'e'. For 
+example, "xexexeiex." To make the next steps easier instead of generating a 
+string we generate a linked list of trees. So the sequence "xex" would be a 
+tree with every node labeled 'x' linked to a tree with every node labeled 
+'e' linked to another tree with every node labeled 'x'.
+	We generate this linked list using a Markov model. The model has 
+three states: 'x', 'e', and 'i', 'x' being the initial state. The code also 
+includes start and end states but these are for coding ease and contribute 
+nothing to the model. In state 'x', we add a tree with nodes labeled 'x' to 
+the end of the linked list. Then with some probability the model goes to 
+state 'e'. Otherwise the generation ceases. In state 'e' we add an 'e' tree 
+and then go to state 'i' or 'x' based on the result of a random number. In 
+state 'i' we add a tree with nodes labeled 'i' and then go to state 'e'. 
+The probability of ending the generation in state 'x' and the probability 
+of going from state 'e' to state 'i' are given on the second line of 
+input.gene.
+	Once we have the linked list of trees we want to mutate the genome 
+so that there are differences in the sequences. We can then see how well 
+crate finds these differences. We mutate at each node in a depth first 
+ordering, skipping the root node. Any ordering will suffice as long as 
+every child is mutated after its parent. At each node we scan through the 
+sequence until we find a change (eg an 'e' followed by an 'x' or an 'i' 
+followed by an 'e'.) We then move the border with some probability given in 
+input.gene. We can move the border earlier or later.
+	Suppose the we have the border 'xe.' If we wanted to move the 
+border later we would want the sequence at that node and all children to 
+become 'xxe' while the ancestors become 'xee.' We are dividing the second 
+block, originally labeled 'e' into two blocks. Since ancestors of the 
+mutated node are unchanged by the mutation, we want the two new slots to be 
+label with the same thing the old slot was labeled. In this case, 'e.' 
+Since we are moving the location of the x->e shift in the node and its 
+descendants we want to to put 'xe' in the two new slots. Now the intergenic 
+section extends into a region of the genome that was originally part of the 
+exon. To implement this in the code we begin by duplicating the second tree 
+and inserting into the linked list between 'x' and 'e.' This divides one of 
+the genome sections into two. Then we relabel the node we are mutating and 
+all of its descendants 'x.' This moves the intergenic sequence into the 
+exon for all of those nodes. Note that in the example we assumed that the 
+'xe' appeared in the same position at every node before the mutation. By 
+duplicating the tree we no longer need to make this assumption.
+	This same process can occur for 'ie', 'ei', or 'ex.' We can also do 
+the reverse. Namely duplicate the first tree and relabel with the label for 
+the second tree. This moves the border earlier in the sequence. 
+Probabilities for all these mutations appear on the third line of 
+input.gene. Including multiple lines of mutation parameters allows 
+different mutation rates at the leaves. Optimally generator would also 
+perform insertion and deletion mutations. However due to the complexity of 
+these mutations, generator does not yet do them.
+	Once we have a mutated linked list of tree we want to create an 
+array of node labels and sequences. We do this by searching each tree, 
+dumping its data into an array. Finally generator prints that array to 
+standard out and creates a .stk file with only those sequences that appear 
+at leaves of trees.
