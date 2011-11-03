@@ -4,6 +4,7 @@
 #include <string>
 #include <fstream>
 #include <algorithm>
+#include <sstream>
 using namespace std;
 
 //The node of a tree. It contains a single character label and pointers to its daughter nodes.
@@ -284,11 +285,21 @@ int findheight(TreeNode *root) {
 		height=0;
 	}
 	else {
-		height=max(findheight(root->children[0]),findheight(root->children[1]))+1
+		height=max(findheight(root->children[0]),findheight(root->children[1]))+1;
 	}
-	cout << height << " ";
 	return height;
 }
+
+void writeheight(TreeNode *root, int array[]) {
+	array[myCounter]=findheight(root);
+	myCounter++;
+	for (int i=0; i<MAXCHILDREN; i++) {
+		if (root->children[i]!=NULL) {
+			writeheight(root->children[i], array);
+		}
+	}
+}
+
 
 
 int main(int argc, char *argv[])
@@ -694,7 +705,14 @@ int main(int argc, char *argv[])
 	}
 	outFile.close();
 	
-	findheight(mytree);
+	int deptharray[NumNodes];
+	myCounter=0;
+	writeheight(mytree,deptharray);
+	outFile.open("depths");
+	for (int i=0; i<NumNodes; i++) {
+		outFile << deptharray[i] << " ";
+	}
+	outFile.close();
 	
 	outFile.open("randint");
 	outFile << rand();

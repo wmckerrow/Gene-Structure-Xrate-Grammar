@@ -1,9 +1,26 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <sstream>
+#include <math.h>
 using namespace std;
 
 int main (int argc, char *argv[]) {
+	
+	if (argc < 3) {
+		cerr << "Please execute like ./DifferenceFinder generatoroutput xrateoutput options." << endl;
+		cerr << "Options are" << endl;
+		cerr << "-i to write fraction identity of evidence to root sequence to errors file," << endl;
+		cerr << "-l to write seqeunce length to errors file," << endl;
+		cerr << "-r to write TP, TN, FP, FN to errors file," << endl;
+		cerr << "-mcc to write mcc to errors file," << endl;
+		cerr << "-d depths to seperate TP, TN, FP, FN and mcc data written to errors file by node depth," << endl;
+		cerr << "-min min sequence length (integer) to only return data if the sequence length is above some minimum," << endl;
+		cerr << "-maxd max depth to keep number of columns constant across runs with different trees," << endl;
+		cerr << "-tn node label to output info about this node." << endl;
+		exit(1);
+	}
+	
 	ifstream xratefile;
 	xratefile.open(argv[1]);
 	if (!xratefile) {
@@ -42,6 +59,62 @@ int main (int argc, char *argv[]) {
 			for (int i=0; i<numnodes; i++) {
 				depthfile >> depths[i];
 			}
+		}
+	}
+	
+	int identity=0;
+	int notidentity=0;
+	int thisdepth;
+	bool checkidentity=0;
+	for (int i=0; i<argc; i++) {
+		if (argv[i][0]=='-' && argv[i][1]=='i') {
+			checkidentity=1;
+		}
+	}
+	
+	bool writemcc=0;
+	for (int i=0; i<argc; i++) {
+		if (argv[i][0]=='-' && argv[i][1]=='m' && argv[i][2]=='c' && argv[i][3]=='c') {
+			writemcc=1;
+		}
+	}
+	
+	bool writelength=0;
+	for (int i=0; i<argc; i++) {
+		if (argv[i][0]=='-' && argv[i][1]=='l') {
+			writelength=1;
+		}
+	}
+	
+	bool writeraw=0;
+	for (int i=0; i<argc; i++) {
+		if (argv[i][0]=='-' && argv[i][1]=='r') {
+			writeraw=1;
+		}
+	}
+	
+	int minlength=0;
+	for (int i=0; i<argc-1; i++) {
+		if (argv[i][0]=='-' && argv[i][1]=='m' && argv[i][2]=='i' && argv[i][3]=='n') {
+			minlength = atoi(argv[i+1]);
+		}
+	}
+	
+	int maxdepth=0;
+	bool maxd=0;
+	for (int i=0; i<argc-1; i++) {
+		if (argv[i][0]=='-' && argv[i][1]=='m' && argv[i][2]=='a' && argv[i][3]=='x' && argv[i][4]=='d') {
+			maxd=1;
+			maxdepth = atoi(argv[i+1]);
+		}
+	}
+	
+	bool writenode=0;
+	string thisnode;
+	for (int i=0; i<argc-1; i++) {
+		if (argv[i][0]=='-' && argv[i][1]=='t' && argv[i][2]=='n') {
+			writenode=1;
+			thisnode=argv[i+1];
 		}
 	}
 	
@@ -159,14 +232,29 @@ int main (int argc, char *argv[]) {
 				}
 			}
 		}
-	}
-	
-	int maxdepth=0;
-	for (int i=0; i<numnodes; i++) {
-		if (depths[i]>maxdepth) {
-			maxdepth=depths[i];
+		else {
+			if (checkidentity) {
+				for (int j=0; j<sequencelength; j++) {
+					if (GeneratorSequence[permutation[i]][j]==GeneratorSequence[0][j]) {
+						identity++;
+					}
+					else {
+						notidentity++;
+					}
+
+				}
+			}
 		}
 	}
+	
+	if (maxd==0) {
+		for (int i=0; i<numnodes; i++) {
+			if (depths[i]>maxdepth) {
+				maxdepth=depths[i];
+			}
+		}
+	}
+	
 	int TPdepth[maxdepth+1];
 	int TNdepth[maxdepth+1];
 	int FPdepth[maxdepth+1];
@@ -193,7 +281,7 @@ int main (int argc, char *argv[]) {
 		}
 	}
 	else {
-		cout << " TP = " << TPdepth[0] << ", TN = " << TNdepth[0] << ", FP = " << FPdepth[0] << ", FN = " << FNdepth[0] << endl;
+		cout << "TP = " << TPdepth[0] << ", TN = " << TNdepth[0] << ", FP = " << FPdepth[0] << ", FN = " << FNdepth[0] << endl;
 	}
 
 	
@@ -216,21 +304,53 @@ int main (int argc, char *argv[]) {
 	inErrors.close();
 	
 	ofstream outErrors;
+	if (sequencelength >= minlength) {
 	outErrors.open("errors");
 	for (int i=0; i<errorlines; i++) {
 		outErrors << errorfile[i] << endl;
 	}
+	if (checkidentity) {
+		outErrors << 1.0*identity/(identity+notidentity) << " ";
+	}
+	if (writelength) {
+		outErrors << sequencelength << " ";
+	}
 	if (checkdepth) {
-		for (int i=1; i<=maxdepth; i++) {
-			outErrors << TPdepth[i] << " " << TNdepth[i] << " " << FPdepth[i] << " " << FNdepth[i] << " ";
+		if (writeraw) {
+			for (int i=1; i<=maxdepth; i++) {
+				outErrors << i << " " << TPdepth[i] << " " << TNdepth[i] << " " << FPdepth[i] << " " << FNdepth[i] <<  " ";
+			}
 		}
-		outErrors << endl;
+		if (writemcc) {
+			for (int i=1; i<=maxdepth; i++) {
+				outErrors << i << " " << (TPdepth[i]*TNdepth[i]-FPdepth[i]*FNdepth[i])/sqrt((TPdepth[i]+FPdepth[i])*(TPdepth[i]+FNdepth[i])*(TNdepth[i]+FPdepth[i])*(TNdepth[i]+FNdepth[i])) << " ";
+			}
+		}
 	}
 	else {
-		outErrors << TPdepth[0] << " " << TNdepth[0] << " " << FPdepth[0] << " " << FNdepth[0] << endl;
+		if (writeraw) {
+			outErrors << TPdepth[0] << " " << TNdepth[0] << " " << FPdepth[0] << " " << FNdepth[0] << " ";
+		}
+		if (writemcc) {
+			outErrors << ((float)TPdepth[0]*(float)TNdepth[0]-(float)FPdepth[0]*(float)FNdepth[0])/sqrt(((float)TPdepth[0]+(float)FPdepth[0])*((float)TPdepth[0]+(float)FNdepth[0])*((float)TNdepth[0]+(float)FPdepth[0])*((float)TNdepth[0]+(float)FNdepth[0])) << " ";
+		}
 	}
-
+	if (writenode) {
+		for (int i=0; i<numnodes; i++) {
+			if (XrateNodeLabel[i]==thisnode) {
+				if (writeraw) {
+					outErrors << TP[i] << " " << TN[i] << " " << FP[i] << " " << FN[i] << " ";
+				}
+				if (writemcc) {
+					outErrors << (TP[i]*TN[i]-FP[i]*FN[i])/sqrt((TP[i]+FP[i])*(TP[i]+FN[i])*(TN[i]+FP[i])*(TN[i]+FN[i])) << " ";
+				}
+			}
+		}
+	}
+		
+	outErrors << endl;
 	outErrors.close();
+	}
 	
 	return 0;
 }
