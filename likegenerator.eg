@@ -1,0 +1,186 @@
+;; A grammar to predict consensus gene structure based on several sources of evidence
+;; To see how the macros expand, type the following:
+;;  echo | xrate -g dart/grammars/geneStructure.eg -x expanded.eg
+;;  less expanded.eg
+
+;; Here begins the grammar.  
+(grammar
+ (name geneStructure)
+ (parametric)
+
+ ;; **** BEGIN PARAMETER DEFINITIONS  ****
+ 
+ ;; Define a seed rate to initialize the training of rate parameters
+ ;; Supposedly, setting this at a low value works best, though EM is reasonably robust. 
+ (&define SEED 0.001)
+ (&define species_SEED 0.1)
+ (&define observation_SEED 0.01)
+ 
+ ;; Probability parameters - used for initial distributions and production rules. 
+ (pgroup 
+  ;; Note that each 'category' nonterminal has its own equilibrium distribution
+  ;; These are currently set as uniform - one might set this a bit more 'skewed' towards
+  ;; the type of token that a nonterminal is expected to emit. 
+  ((p_E_e 1) (placeholder 0))
+  ((p_EX_e 0.5) (p_EX_x 0.5))
+  ((p_EI_e 0.5) (p_EI_i 0.5))
+ 
+  ;; Initial distribution over categories as governed by the start -> category transitions
+  ((&foreach category (E_master I_master X_master) ((&cat START2 category) (&div 1 3)) ) )
+  
+  ;; Probabilities of going from / staying in a given category at the CONSENSUS (e.g. root) level
+  ((X_master_to_E_master .8) (X_master_to_End .2))
+  ((E_master_to_X_master .8) (E_master_to_I_master .2))
+  ((X_continue .8) (X_notcontinue .2))
+  ((I_continue .8) (I_notcontinue .2))
+  )
+
+ ;; Rate parameters - one set governs the inter-species changes and another the 'observation' 
+ ;; These are (for now) shared among the different chains used by the {E,I,X}_cons nonterminals
+ (&foreach 
+  TYPE 
+  (species observation)
+  (&foreach-token 
+   SRC
+   (&foreach-token 
+    DEST
+    (&if 
+     (&eq SRC DEST) 
+     ()
+     (rate ((&cat TYPE _ SRC _ DEST) (&cat SEED) ) ) )
+    ) ;; end DEST
+   ) ;; end SRC
+  ) ;; end TYPE
+
+ ;; **** END PARAMETER DEFINITIONS  ****
+
+ ;; **** BEGIN MARKOV CHAIN DEFINITIONS  ****
+
+ ;; Define species_chain and observation_chain
+ ;; These are identical in form, but they have separate parametrizations
+ (&foreach 
+  category 
+  (E EI EX)
+  (&foreach
+   TYPE
+   (species observation)
+   ;; Define the Markov chains for residue substitution ( i - e - x )
+   ;; There are two of these for each category - one for species-level evo and one observations
+   (chain
+    (update-policy parametric)
+    (terminal ((&cat category _ TYPE)))
+    
+    ;; Initial probability distributions - call forth the parameters declared in the pgroup block above
+    (&foreach-token
+     TOK
+     (&if
+       (&or 
+       (&eq TOK e)
+       (&and (&eq category EX) (&eq TOK x))
+       (&and (&eq category EI) (&eq TOK i))
+       )
+      (initial (state (TOK)) (prob (&cat p_ category _ TOK)))
+      ()
+      )
+     )
+    
+    ;; Mutation rates - simply call forth the parameters declared in the rate blocks above
+    (&foreach-token
+     SRC
+     (&foreach-token
+      DEST
+      (&if
+       (&eq SRC DEST)
+       ()
+       (&if
+        (&and
+         (&or 
+         (&eq DEST e)
+         (&and (&eq category EX) (&eq DEST x))
+         (&and (&eq category EI) (&eq DEST i))
+         )
+         (&or
+         (&eq SRC e)
+         (&and (&eq category EX) (&eq SRC x))
+         (&and (&eq category EI) (&eq SRC i))
+         )
+        )
+       (mutate (from (SRC)) (to (DEST)) (rate (&cat TYPE _ SRC _ DEST) ) )
+       ()
+;;e.g.:(mutate (from (e))   (to (x))    (rate species_e_x))
+       )
+       )
+      )
+     )
+    ) ;; end chain
+   ) ;; end types
+  ) ;; end categories
+ ;; Done defining regular chains
+
+ 
+ ;; Define the hybrid chains, which are composed of a category_species chain and a category_observation components
+ ;; The observation chain models transitions on terminal branches (leading to "leaves") 
+ ;; and the species chain models transitions on the internal branches. 
+ ;; This declaration is a bit hairy, since we've got multiple loops *within* the components block.  See this page for details on hybrids:
+ ;; http://biowiki.org/XrateFormat#Hybrid_chains
+ (&foreach 
+  category
+  (E EI EX)
+  (hybrid-chain
+   (terminal (category)) ;; Name the hybrid chain based on the category it emits from.
+   (row ?) ;; We'd like the label (below) to correspond to a node name (again, see biowiki link above).
+   (components ;; Define the components of the hybrid chain - this is based on whether or not the branch is *terminal*
+    (&foreach-leaf
+     NODE
+     ((label NODE) (terminal ((&cat category _ observation)))) ;; for branches leading to leaves - use the observation chain
+     );; end leaf
+    (&foreach-ancestor
+     NODE
+     ((label NODE) (terminal ((&cat category _ species)))) ;; for branches leading to ancestral nodes - use the species chain
+     ) ;; end ancestor
+    );; end components
+   );; end hybrid chain
+  );; end category
+ ;; Done defining hybrid chains
+ 
+ ;; **** END MARKOV CHAIN DEFINITIONS  ****
+
+ ;; **** BEGIN TOP-LEVEL PRODUCTION RULES **** 
+
+ ;; Transitions from start
+ (&foreach 
+  category
+  (E_master I_master X_master)
+  (transform  (from (START))  (to (category)) (prob (&cat START2 category)))
+  )
+ ;; START->END transition ensures that empty alignments don't have zero likelihood
+ (transform (from (START))  (to ()))
+ 
+ ;; Master rules
+ (transform (from (X_master)) (to (X_startE_master)) (prob X_master_to_E_master))
+ (transform (from (X_master)) (to (X_start)) (prob X_master_to_End))
+ (transform (from (X_startE_master)) (to (X_start E_master)))
+ (transform (from (E_master)) (to (E_startX_master)) (prob E_master_to_X_master))
+ (transform (from (E_startX_master)) (to (E_start X_master)))
+ (transform (from (E_master)) (to (E_startI_master)) (prob E_master_to_I_master))
+ (transform (from (E_startI_master)) (to (E_start I_master)))
+ (transform (from (I_master)) (to (I_start E_master)) (prob 1))
+
+ ;; Start rules
+ (transform (from (X_start)) (to (EX X_start*)) (prob 1))
+ (transform (from (X_start*)) (to (X_start)) (prob X_continue))
+ (transform (from (X_start*)) (to ()) (prob X_notcontinue))
+ (transform (from (E_start)) (to (E E_start*)) (prob 1))
+ (transform (from (E_start*)) (to ()) (prob 1))
+ (transform (from (I_start)) (to (EI I_start*)) (prob 1))
+ (transform (from (I_start*)) (to (I_start)) (prob I_continue))
+ (transform (from (I_start*)) (to ()) (prob I_notcontinue))
+)
+;; **** END TOP-LEVEL PRODUCTION RULES **** 
+
+(alphabet
+ (name geneStructure)
+ (token (e i x))
+ (wildcard *)
+ ) ;; end alphabet geneStructure
+

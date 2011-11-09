@@ -9,3 +9,9 @@ ErrorTotaler: errortotaller.cpp
 
 TreeBuilder: TreeBuilder.cpp
 	g++ -o TreeBuilder TreeBuilder.cpp
+
+reevidence: reevidence.cpp
+	g++ -o reevidence reevidence.cpp
+
+viterbi: viterbi.cpp
+	g++ -o viterbi viterbi.cpp

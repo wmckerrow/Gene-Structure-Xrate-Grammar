@@ -8,7 +8,7 @@ using namespace std;
 int main (int argc, char *argv[]) {
 	
 	if (argc < 3) {
-		cerr << "Please execute like ./DifferenceFinder xrateoutput generatoroutput options." << endl;
+		cerr << "Please execute like ./DifferenceFinder viterbioutput generatoroutput options." << endl;
 		cerr << "Options are" << endl;
 		cerr << "-i to write fraction identity of evidence to root sequence to errors file," << endl;
 		cerr << "-l to write seqeunce length to errors file," << endl;
@@ -21,25 +21,26 @@ int main (int argc, char *argv[]) {
 		exit(1);
 	}
 	
-	ifstream xratefile;
-	xratefile.open(argv[1]);
-	if (!xratefile) {
-		cerr << "Unable to open xrate output file " << argv[1] << endl;
+	ifstream Vfile;
+	Vfile.open(argv[1]);
+	if (!Vfile) {
+		cerr << "Unable to open viterbi output file " << argv[1] << endl;
 		exit(1);
 	}
 	int numlines=0;
 	string line;
-	while (getline(xratefile,line)) {
+	while (getline(Vfile,line)) {
 		numlines++;
 	}
-	xratefile.close();
-	int numnodes=(numlines-4)/3;
+	Vfile.close();
+	int numnodes=numlines;
 	string file[numlines];
-	xratefile.open(argv[1]);
+	Vfile.open(argv[1]);
 	for (int i=0; i<numlines; i++) {
-		getline(xratefile,file[i]);
+		getline(Vfile,file[i]);
 		//cout << i << " is " << file[i] << endl;
 	}
+	Vfile.close();
 	
 	int depths[numnodes];
 	for (int i=0; i<numnodes; i++) {
@@ -118,30 +119,29 @@ int main (int argc, char *argv[]) {
 		}
 	}
 	
-	string XrateNodeLabel[numnodes];
-	string XrateNodeSequence[numnodes];
+	string ViterbiNodeLabel[numnodes];
+	string ViterbiNodeSequence[numnodes];
 	string xi="xi";
 	string ix="ix";
 	int position;
 	for (int i=0; i<numnodes; i++) {
 		position=0;
-		while (file[4+3*i][position] != ' ') {
+		while (file[i][position] != ' ') {
 			position++;
 		}
-		XrateNodeLabel[i]=file[4+3*i].substr(0,position);
-		position=file[5+3*i].size()-1;
-		while (file[4+3*i][position] != ' ') {
+		ViterbiNodeLabel[i]=file[i].substr(0,position);
+		position=file[i].size()-1;
+		while (file[i][position] != ' ') {
 			position--;
 		}
-		XrateNodeSequence[i]=file[5+3*i].substr(position+1,file[5+3*i].size()-position-1);
-		if (XrateNodeSequence[i].find(xi)!=string::npos) {
-			cerr << "ATTENTION: xi found in " << XrateNodeLabel[i] << "." << endl;
+		ViterbiNodeSequence[i]=file[i].substr(position+1,file[i].size()-position-1);
+		if (ViterbiNodeSequence[i].find(xi)!=string::npos) {
+			cerr << "ATTENTION: xi found in " << ViterbiNodeLabel[i] << "." << endl;
 		}
-		if (XrateNodeSequence[i].find(ix)!=string::npos) {
-			cerr << "ATTENTION: ix found in " << XrateNodeLabel[i] << "." << endl;
+		if (ViterbiNodeSequence[i].find(ix)!=string::npos) {
+			cerr << "ATTENTION: ix found in " << ViterbiNodeLabel[i] << "." << endl;
 		}
 	}
-	xratefile.close();
 	
 	ifstream generatorfile;
 	generatorfile.open(argv[2]);
@@ -160,7 +160,7 @@ int main (int argc, char *argv[]) {
 	int permutation[numnodes];
 	for (int i=0; i< numnodes; i++) {
 		for (int j=0; j<numnodes; j++) {
-			if (XrateNodeLabel[i]==GeneratorNodeLabel[j]) {
+			if (ViterbiNodeLabel[i]==GeneratorNodeLabel[j]) {
 				permutation[i]=j;
 			}
 		}
@@ -178,13 +178,13 @@ int main (int argc, char *argv[]) {
 	}
 	int numdata=0;
 	string numbers="1234567890";
-	int sequencelength = XrateNodeSequence[0].size();
+	int sequencelength = ViterbiNodeSequence[0].size();
 	for (int i=0; i<numnodes; i++) {
-		if (numbers.find(XrateNodeLabel[i][1])==string::npos) {
+		if (numbers.find(ViterbiNodeLabel[i][1])==string::npos) {
 			for (int j=0; j<sequencelength; j++) {
 				switch (GeneratorSequence[permutation[i]][j]) {
 					case 'e':
-						switch (XrateNodeSequence[i][j]) {
+						switch (ViterbiNodeSequence[i][j]) {
 							case 'e':
 								TP[i]++;
 								break;
@@ -199,7 +199,7 @@ int main (int argc, char *argv[]) {
 						}
 						break;
 					case 'i':
-						switch (XrateNodeSequence[i][j]) {
+						switch (ViterbiNodeSequence[i][j]) {
 							case 'e':
 								FP[i]++;
 								break;
@@ -212,7 +212,7 @@ int main (int argc, char *argv[]) {
 						}
 						break;
 					case 'x':
-						switch (XrateNodeSequence[i][j]) {
+						switch (ViterbiNodeSequence[i][j]) {
 							case 'e':
 								FP[i]++;
 								break;
@@ -227,8 +227,8 @@ int main (int argc, char *argv[]) {
 						}
 						break;
 				}
-				if (XrateNodeSequence[i][j]!=GeneratorSequence[permutation[i]][j]) {
-					cout << "At " << GeneratorNodeLabel[permutation[i]] << " position " << j << " " << GeneratorSequence[permutation[i]][j] << "->" << XrateNodeSequence[i][j] << endl;
+				if (ViterbiNodeSequence[i][j]!=GeneratorSequence[permutation[i]][j]) {
+					//cout << "At " << GeneratorNodeLabel[permutation[i]] << " " << GeneratorSequence[permutation[i]][j] << "->" << ViterbiNodeSequence[i][j] << endl;
 				}
 			}
 		}
@@ -337,7 +337,7 @@ int main (int argc, char *argv[]) {
 	}
 	if (writenode) {
 		for (int i=0; i<numnodes; i++) {
-			if (XrateNodeLabel[i]==thisnode) {
+			if (ViterbiNodeLabel[i]==thisnode) {
 				if (writeraw) {
 					outErrors << TP[i] << " " << TN[i] << " " << FP[i] << " " << FN[i] << " ";
 				}
