@@ -1,0 +1,28 @@
+	The viterbi code uses the ancestral reconstruction posterior
+probabilities (-arpp) provided by xrate to generate the most probable
+ancestral sequeneces the do not have 'xi' or 'ix.' The first thing that
+the viterbi code must do is to extract the values from the xrate -arpp
+output. It skips the header lines until it gets to #=GS. The second 
+"word" in the line is assumed to be the node label. If it is not the same
+as the previous node label then we assume that we have moved on to a new
+node. The document is scanned until '(' is found. It is then assumed that
+that "word" is "(x)" where x is the sequence position. Finally the code
+finds all "words" beginning with 'P.' This are assumed to be of the form
+P(e, i or x)=float. The float is taken to be the posterior probability
+for e, i or x at the position. After no more 'P' starting word are
+found it is assumed that we are on the next line. If the line starts with
+the label of the first node it is assumed that the posterior probability
+lines have been completed. All of the posterior probabilities are
+collected in a 3 dimensional array, where the dimensions are node,
+sequence position, letter. We then take -log of each element of the array
+to get scores.
+	Once we have an array of scores we implement the Viterbi
+algorithm as a loop, performing the forward and traceback steps
+simultaneously. At each step we have the lowest score for a sequence
+of length n ending in e, i or x and a sequence that generates that lowest
+score. To find the best n+1 sequences the code add e onto the e, i and x
+ending sequences and chooses the one with the best score. It then adds i
+on to the e and i ending sequences and picks the one with the better score.
+Finally it adds x on to the e and x length sequences and picks the one 
+with the better score.
+	Finally the best sequences ending in x are output to the screen.

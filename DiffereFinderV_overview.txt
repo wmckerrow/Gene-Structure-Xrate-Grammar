@@ -1,0 +1,3 @@
+	DifferenceFinderV works exactly like DifferenceFinder except that it
+reads the output of Viterbi. It reads Viterbi output by the same method that it
+reads Generator output, but it still must permute the nodes so that they line up.

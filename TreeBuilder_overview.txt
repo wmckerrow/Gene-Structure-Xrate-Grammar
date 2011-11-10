@@ -1,0 +1,45 @@
+	TreeBuilder outputs randomly generated trees in Newick format, with
+constraints given in the command line. Treebuilder begins by creating an array
+of 2*n-1 TreeNodes where n is the number of species specified in the command
+line. TreeNodes are exactly the same structure in TreeBuilder that they are in
+Generator except that they do not contain an additional 'e' 'i' or 'x' label.
+They contain a string that corresponds to the node label and an array of pointers
+that will point to the children of that node. The first numspecies nodes of the
+tree will be the species nodes and the rest will be ancesters. For each ancestor
+tree builder that ancestor to two nodes that do not yet have an ancester.
+	The chances that a given node will be chosen as the first or second child
+depends on it height parameters multiplier1 and multiplier2. When choosing the
+first each node is given the weight multiplier1^height. When choosing the second
+child each node is given the weight multiplier2^height. If multipler1 and
+multipler2 are both small then all the species will be connected before any of
+ancestors are, yielding a balanced tree. If however multiplier1 is large but
+multiplier2 is small then each step will preferentially connect a heigh node to
+a low node yielding a very imbalanced tree. Multipler1 and multiplier2 can be
+specified in the command line or the user can simple specify a buildparameter.
+Multiplier1 will be set to 1.0/buildparameter-1.0 and multiplier2 will be set to
+1.0-4.0*(buildparameter-0.5)^2. If build parameter is almost one, then both
+multiplier will be small, giving a balanced tree. If buildparameter is small
+then multiplier1 will be large, but multiplier2 will be small, yielfing an
+imbalanced tree.
+	Once the tree has been generated, evidence nodes must be added. The
+addevidence function runs through every node of the tree. If it comes to a node
+that has no children it adds a number of children specified in the command line.
+It then labels these nodes with a letter followed by a number. The first set
+of evidence nodes are labeled A1, A2, ... the second B1,B2,... etc. Once capital
+letters have been exhausted lower case letters are used. The labeling will not
+work if there are more than 52 species.
+	Next the internal nodes must be labeled. The LabelTree function moves
+through all of the nodes starting from the bottom. If the node does not yet have
+a label, the function looks at the labels of the children. If the first child is
+label X1 then the current node must be a species node. It receives the label X.
+Otherwise the label is the concatenation of the label of the children. The parent
+of nodes A and B receives the label AB.
+	Finally the tree must be converted into a Newick format string. The
+Newick string is generated according to the following recursive formula:
+
+(Newick[child1],Newick[child2],...)NodeLabel:.1
+
+If the node does not have any children, only NodeLabel:.1 is generated. Once the
+string is returned the final :.1 is removed. If an input.gene format file has
+been specified then the tree in the first line is replaced with the newly
+generated tree.
