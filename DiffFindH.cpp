@@ -119,7 +119,7 @@ int main (int argc, char *argv[]) {
 	}
 	
 	string XrateNodeLabel[numnodes];
-	string XrateNodeSequence[numnodes];
+	string XrateNodeHolesSequence[numnodes];
 	string xi="xi";
 	string ix="ix";
 	int position;
@@ -133,15 +133,30 @@ int main (int argc, char *argv[]) {
 		while (file[4+3*i][position] != ' ') {
 			position--;
 		}
-		XrateNodeSequence[i]=file[5+3*i].substr(position+1,file[5+3*i].size()-position-1);
-		if (XrateNodeSequence[i].find(xi)!=string::npos) {
-			cerr << "ATTENTION: xi found in " << XrateNodeLabel[i] << "." << endl;
-		}
-		if (XrateNodeSequence[i].find(ix)!=string::npos) {
-			cerr << "ATTENTION: ix found in " << XrateNodeLabel[i] << "." << endl;
-		}
+		XrateNodeHolesSequence[i]=file[5+3*i].substr(position+1,file[5+3*i].size()-position-1);
 	}
 	xratefile.close();
+	
+	string XrateNodeSequence[numnodes];
+	for (int i=0; i<numnodes; i++) {
+		XrateNodeSequence[i]="";
+		for (int j=0; j<XrateNodeHolesSequence[0].length(); j++) {
+			if (XrateNodeHolesSequence[i][j]=='e') {
+				XrateNodeSequence[i]+="e";
+			}
+			if (XrateNodeHolesSequence[i][j]=='i') {
+				XrateNodeSequence[i]+="i";
+			}
+			if (XrateNodeHolesSequence[i][j]=='x') {
+				XrateNodeSequence[i]+="x";
+			}
+		}
+	}
+	
+	for (int i=0; i<numnodes; i++) {
+		//cout << XrateNodeHolesSequence[i] << endl;
+		//cout << XrateNodeSequence[i] << endl;
+	}
 	
 	ifstream generatorfile;
 	generatorfile.open(argv[2]);
@@ -342,7 +357,7 @@ int main (int argc, char *argv[]) {
 					outErrors << TP[i] << " " << TN[i] << " " << FP[i] << " " << FN[i] << " ";
 				}
 				if (writemcc) {
-					outErrors << ((float)TP[i]*(float)TN[i]-(float)FP[i]*(float)FN[i])/sqrt(((float)TP[i]+(float)FP[i])*((float)TP[i]+(float)FN[i])*((float)TN[i]+(float)FP[i])*((float)TN[i]+(float)FN[i])) << " ";
+					outErrors << (TP[i]*TN[i]-FP[i]*FN[i])/sqrt((TP[i]+FP[i])*(TP[i]+FN[i])*(TN[i]+FP[i])*(TN[i]+FN[i])) << " ";
 				}
 			}
 		}

@@ -305,7 +305,7 @@ void writeheight(TreeNode *root, int array[]) {
 int main(int argc, char *argv[])
 {
 	//SET UP STEP
-	srand((unsigned)time(0)); //seed random number generator. Doesn't work at certain times...
+	srand((unsigned)time(0)); //seed random number generator. Took a vacation...
 	//srand(1234345234);
 	if (argc < 3) {
 		cerr << "Please use Generator inputfile outputfile" << endl;
@@ -352,13 +352,41 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	inFile >> Newick;    //get the tree string
-	float EtoI,XtoEnd;
-	inFile >> EtoI >> XtoEnd;    //get the Markov parameters
-	float xetoxx[parameterlines],xetoee[parameterlines],xtoxex[parameterlines];
-	float extoxx[parameterlines],extoee[parameterlines],eitoii[parameterlines],eitoee[parameterlines],etoexe[parameterlines],etoeie[parameterlines];
-	float ietoii[parameterlines],ietoee[parameterlines],itoiei[parameterlines];
+	float E0toI0,E0toI1,E0toI2,E1toI0,E1toI1,E1toI2,E2toI0,E2toI1,E2toI2,XtoEnd;
+	inFile >> E0toI0 >> E0toI1 >> E0toI2 >> E1toI0 >> E1toI1 >> E1toI2 >> E2toI0 >> E2toI1 >> E2toI2 >> XtoEnd;    //get the Markov parameters
+	float xetoxx[parameterlines],xetoee[parameterlines];
+	float e0xtoxx[parameterlines],e0xtoe0e0[parameterlines];
+	float e1xtoxx[parameterlines],e1xtoe1e1[parameterlines];
+	float e2xtoxx[parameterlines],e2xtoe2e2[parameterlines];
+	float e0i0toi0i0[parameterlines],e0i0toe0e0[parameterlines];
+	float e0i1toi1i1[parameterlines],e0i1toe0e0[parameterlines];
+	float e0i2toi2i2[parameterlines],e0i2toe0e0[parameterlines];
+	float e1i0toi0i0[parameterlines],e1i0toe1e1[parameterlines];
+	float e1i1toi1i1[parameterlines],e1i1toe1e1[parameterlines];
+	float e1i2toi2i2[parameterlines],e1i2toe1e1[parameterlines];
+	float e2i0toi0i0[parameterlines],e2i0toe2e2[parameterlines];
+	float e2i1toi1i1[parameterlines],e2i1toe2e2[parameterlines];
+	float e2i2toi2i2[parameterlines],e2i2toe2e2[parameterlines];
+	float i0e0toi0i0[parameterlines],i0e0toe0e0[parameterlines];
+	float i1e1toi1i1[parameterlines],i1e1toe1e1[parameterlines];
+	float i2e2toi2i2[parameterlines],i2e2toe2e2[parameterlines];
 	for (int i=0; i<parameterlines; i++) {    //get each line of mutation parameters
-		inFile>>xetoxx[i]>>xetoee[i]>>xtoxex[i]>>extoxx[i]>>extoee[i]>>eitoii[i]>>eitoee[i]>>etoexe[i]>>etoeie[i]>>ietoii[i]>>ietoee[i]>>itoiei[i];
+		inFile >> xetoxx[i] >> xetoee[i];
+		inFile >> e0xtoxx[i] >> e0xtoe0e0[i];
+		inFile >> e1xtoxx[i] >> e1xtoe1e1[i];
+		inFile >> e2xtoxx[i] >> e2xtoe2e2[i];
+		inFile >> e0i0toi0i0[i] >> e0i0toe0e0[i];
+		inFile >> e0i1toi1i1[i] >> e0i1toe0e0[i];
+		inFile >> e0i2toi2i2[i] >> e0i2toe0e0[i];
+		inFile >> e1i0toi0i0[i] >> e1i0toe1e1[i];
+		inFile >> e1i1toi1i1[i] >> e1i1toe1e1[i];
+		inFile >> e1i2toi2i2[i] >> e1i2toe1e1[i];
+		inFile >> e2i0toi0i0[i] >> e2i0toe2e2[i];
+		inFile >> e2i1toi1i1[i] >> e2i1toe2e2[i];
+		inFile >> e2i2toi2i2[i] >> e2i2toe2e2[i];
+		inFile >> i0e0toi0i0[i] >> i0e0toe0e0[i];
+		inFile >> i1e1toi1i1[i] >> i1e1toe1e1[i];
+		inFile >> i2e2toi2i2[i] >> i2e2toe2e2[i];
 	}
 	inFile.close();
 	
@@ -390,7 +418,7 @@ int main(int argc, char *argv[])
 			NumLeaves++;
 		}
 	}
-	
+		
 	int NumLeafParents=0;    //count the number of nodes which are parents of leaves
 	for (int i=0; i<NumNodes; i++) {
 		if (FindLeafParent(mytree,NodeLocations[i])) {
@@ -400,7 +428,7 @@ int main(int argc, char *argv[])
 	
 	int ratetype=-1;     //used the number of parameters to find out which rate type is desired
 	if (parameterlines < 1) {
-		cerr << "Need paraters to run.";
+		cerr << "Need parameters to run.";
 		exit(1);
 	}
 	if (parameterlines == 1) {
@@ -416,7 +444,7 @@ int main(int argc, char *argv[])
 		ratetype=3;
 	}
 	if (ratetype==-1) {
-		cerr << "Found " << parameterlines << "parameter lines for " << NumLeaves << " leaves and " << NumLeafParents << " leaf parents. Using constant mutation rates." << endl;
+		cerr << "Found " << parameterlines << "parameter lines for " << NumLeaves << " leaves and " << NumLeafParents << " taxa. Using constant mutation rates from first parameter line." << endl;
 		ratetype=0;   //default is all nodes have same mutation rate
 	}
 	
@@ -430,7 +458,7 @@ int main(int argc, char *argv[])
 	int chainleng = 0;       //this variable will count the number of emisions in the markov chain
 	float r;                 //use this for random number generator
 	int state = 0;           //markov state
-	while (state != 4) {     //The Markov Chain step. state 0 is start, 1 is x, 2 is e, 3 is i and 4 is stop.
+	while (state != 8) {     //The Markov Chain step. state 0 is start, 1 is x, 2 is e, 3 is i and 4 is stop.
 		switch (state) {
 			case 0:              //From start we go straight to x
 				state=1;
@@ -445,7 +473,7 @@ int main(int argc, char *argv[])
 				r = (float)rand()/(float)RAND_MAX;
 				//cout << r << endl;
 				if (r < XtoEnd) {
-					state = 4;
+					state = 8;
 				}
 				else {
 					state = 2;
@@ -459,14 +487,56 @@ int main(int argc, char *argv[])
 				llconductor->tree=MakeTree('e',mytree);
 				llconductor->next=NULL;
 				r = (float)rand()/(float)RAND_MAX;
-				if (r < EtoI) {
-					state = 3;
+				state=1;
+				if (r < E0toI0) {
+					state = 5;
 				}
-				else {
-					state = 1;
+				if (r >= E0toI0 && r < E0toI0+E0toI1) {
+					state = 6;
+				}
+				if (r >= E0toI0+E0toI1 && r < E0toI0+E0toI1+E0toI2) {
+					state = 7;
 				}
 				break;
-			case 3:                 //From state i we emit a tree with i labels and go to state e.
+			case 3:                //From state e we emit a tree with e labels and go to x or i.
+				//cout << "f";
+				chainleng++;
+				llconductor->next=new TreeList;
+				llconductor=llconductor->next;
+				llconductor->tree=MakeTree('f',mytree);
+				llconductor->next=NULL;
+				r = (float)rand()/(float)RAND_MAX;
+				state=1;
+				if (r < E1toI0) {
+					state = 5;
+				}
+				if (r >= E1toI0 && r < E1toI0+E1toI1) {
+					state = 6;
+				}
+				if (r >= E1toI0+E1toI1 && r < E1toI0+E1toI1+E1toI2) {
+					state = 7;
+				}
+				break;
+			case 4:                //From state e we emit a tree with e labels and go to x or i.
+				//cout << "g";
+				chainleng++;
+				llconductor->next=new TreeList;
+				llconductor=llconductor->next;
+				llconductor->tree=MakeTree('g',mytree);
+				llconductor->next=NULL;
+				r = (float)rand()/(float)RAND_MAX;
+				state=1;
+				if (r < E2toI0) {
+					state = 5;
+				}
+				if (r >= E2toI0 && r < E2toI0+E2toI1) {
+					state = 6;
+				}
+				if (r >= E2toI0+E2toI1 && r < E2toI0+E2toI1+E2toI2) {
+					state = 7;
+				}
+				break;
+			case 5:                 //From state i we emit a tree with i labels and go to state e.
 				//cout << "i";
 				chainleng++;
 				llconductor->next=new TreeList;
@@ -475,11 +545,28 @@ int main(int argc, char *argv[])
 				llconductor->next=NULL;
 				state = 2;
 				break;
+			case 6:                 //From state i we emit a tree with i labels and go to state e.
+				//cout << "j";
+				chainleng++;
+				llconductor->next=new TreeList;
+				llconductor=llconductor->next;
+				llconductor->tree=MakeTree('j',mytree);
+				llconductor->next=NULL;
+				state = 3;
+				break;
+			case 7:                 //From state i we emit a tree with i labels and go to state e.
+				//cout << "k";
+				chainleng++;
+				llconductor->next=new TreeList;
+				llconductor=llconductor->next;
+				llconductor->tree=MakeTree('k',mytree);
+				llconductor->next=NULL;
+				state = 4;
+				break;
 		}
 	}
 	//  cout << endl;
-	
-	
+		
 	TreeList *llconductornext;
 	TreeNode *temptree1;
 	TreeNode *temptree2;
@@ -532,30 +619,21 @@ int main(int argc, char *argv[])
 		}
 		
 		//cout << "rate number is " << ratenumber << " at node " << NodeLabelArray[i] << endl;
-		
+				
 		while (llconductornext != NULL) {  //move down the linked list until we get to the end
 			ThisLabel=FindLabel(llconductor->tree,NodeLocations[i]);
 			NextLabel=FindLabel(llconductornext->tree,NodeLocations[i]);
 			r = (float)rand()/(float)RAND_MAX;   //random number between 0 and 1;
 			switch (ThisLabel) {
 				case 'x':
-					if (r<xtoxex[ratenumber]) {  //the first possible mutation is insertion of an exon into an intergenic sequence
-						temptree1=CopyTree(llconductor->tree,temptree2);
-						AddTree(temptree1,llconductor);
-						chainleng++;
-						temptree1=CopyTree(llconductor->tree,temptree2);
-						MutateTree(temptree1,NodeLocations[i],'e');
-						AddTree(temptree1,llconductor);
-						chainleng++;
-					}
 					if (NextLabel=='e') {  //if it is followed by an exon then we can shorten or lengthen the exon
-						if (r>=xtoxex[ratenumber] && r<xtoxex[ratenumber]+xetoxx[ratenumber]) {
+						if (r<xetoxx[ratenumber]) {
 							temptree1 = CopyTree(llconductornext->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'x');
 							AddTree(temptree1,llconductor);
 							chainleng++;
 						}
-						if (r>=xtoxex[ratenumber]+xetoxx[ratenumber] && r<xtoxex[ratenumber]+xetoxx[ratenumber]+xetoee[ratenumber]) {
+						if (r>=xetoxx[ratenumber] && r<xetoxx[ratenumber]+xetoee[ratenumber]) {
 							temptree1 = CopyTree(llconductor->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'e');
 							AddTree(temptree1,llconductor);
@@ -564,46 +642,56 @@ int main(int argc, char *argv[])
 					}
 					break;
 				case 'e':
-					if (r<etoeie[ratenumber]) {    //we can insert an intron
-						temptree1=CopyTree(llconductor->tree,temptree2);
-						AddTree(temptree1,llconductor);
-						chainleng++;
-						temptree1=CopyTree(llconductor->tree,temptree2);
-						MutateTree(temptree1,NodeLocations[i],'i');
-						AddTree(temptree1,llconductor);
-						chainleng++;
-					}
-					if (r>=etoeie[ratenumber] && r<etoeie[ratenumber]+etoexe[ratenumber]) {   //or we can insert an intergenic sequence
-						temptree1=CopyTree(llconductor->tree,temptree2);
-						AddTree(temptree1,llconductor);
-						chainleng++;
-						temptree1=CopyTree(llconductor->tree,temptree2);
-						MutateTree(temptree1,NodeLocations[i],'x');
-						AddTree(temptree1,llconductor);
-						chainleng++;
-					}
 					if (NextLabel=='i') {   //if it followed by an intron then we can extend the exon into the intron of extend the intron into the exon
-						if (r>=etoeie[ratenumber]+etoexe[ratenumber] && r<etoeie[ratenumber]+etoexe[ratenumber]+eitoee[ratenumber]) {
+						if (r<e0i0toe0e0[ratenumber]) {
 							temptree1 = CopyTree(llconductornext->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'e');
 							AddTree(temptree1,llconductor);
 							chainleng++;
 						}
-						if (r>=etoeie[ratenumber]+etoexe[ratenumber]+eitoee[ratenumber] && r<etoeie[ratenumber]+etoexe[ratenumber]+eitoee[ratenumber]+eitoii[ratenumber]) {
+						if (r>=e0i0toe0e0[ratenumber] && r<e0i0toe0e0[ratenumber]+e0i0toi0i0[ratenumber]) {
 							temptree1 = CopyTree(llconductor->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'i');
 							AddTree(temptree1,llconductor);
 							chainleng++;
 						}
 					}
-					if (NextLabel=='x') {   //similarly we can shorted or lengthen an exon into an intergenic sequence
-						if (r>=etoeie[ratenumber]+etoexe[ratenumber] && r<etoeie[ratenumber]+etoexe[ratenumber]+extoee[ratenumber]) {
+					if (NextLabel=='j') {   //if it followed by an intron then we can extend the exon into the intron of extend the intron into the exon
+						if (r<e0i1toe0e0[ratenumber]) {
 							temptree1 = CopyTree(llconductornext->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'e');
 							AddTree(temptree1,llconductor);
 							chainleng++;
 						}
-						if (r>=etoeie[ratenumber]+etoexe[ratenumber]+extoee[ratenumber] && r<etoeie[ratenumber]+etoexe[ratenumber]+extoee[ratenumber]+extoxx[ratenumber]) {
+						if (r>=e0i1toe0e0[ratenumber] && r<e0i1toe0e0[ratenumber]+e0i1toi1i1[ratenumber]) {
+							temptree1 = CopyTree(llconductor->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'j');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+					}
+					if (NextLabel=='k') {   //if it followed by an intron then we can extend the exon into the intron of extend the intron into the exon
+						if (r<e0i2toe0e0[ratenumber]) {
+							temptree1 = CopyTree(llconductornext->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'e');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+						if (r>=e0i2toe0e0[ratenumber] && r<e0i2toe0e0[ratenumber]+e0i2toi2i2[ratenumber]) {
+							temptree1 = CopyTree(llconductor->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'k');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+					}
+					if (NextLabel=='x') {   //similarly we can shorted or lengthen an exon into an intergenic sequence
+						if (r<e0xtoe0e0[ratenumber]) {
+							temptree1 = CopyTree(llconductornext->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'e');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+						if (r>=e0xtoe0e0[ratenumber] && e0xtoe0e0[ratenumber]+e0xtoxx[ratenumber]) {
 							temptree1 = CopyTree(llconductor->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'x');
 							AddTree(temptree1,llconductor);
@@ -611,26 +699,165 @@ int main(int argc, char *argv[])
 						}
 					}
 					break;
-				case 'i':
-					if (r<itoiei[ratenumber]) {   //insert an exon into an intron
-						temptree1=CopyTree(llconductor->tree,temptree2);
-						AddTree(temptree1,llconductor);
-						chainleng++;
-						temptree1=CopyTree(llconductor->tree,temptree2);
-						MutateTree(temptree1,NodeLocations[i],'e');
-						AddTree(temptree1,llconductor);
-						chainleng++;
+				case 'f':
+					if (NextLabel=='i') {   //if it followed by an intron then we can extend the exon into the intron of extend the intron into the exon
+						if (r<e1i0toe1e1[ratenumber]) {
+							temptree1 = CopyTree(llconductornext->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'f');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+						if (r>=e1i0toe1e1[ratenumber] && r<e1i0toe1e1[ratenumber]+e1i0toi0i0[ratenumber]) {
+							temptree1 = CopyTree(llconductor->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'i');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
 					}
+					if (NextLabel=='j') {   //if it followed by an intron then we can extend the exon into the intron of extend the intron into the exon
+						if (r<e1i1toe1e1[ratenumber]) {
+							temptree1 = CopyTree(llconductornext->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'f');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+						if (r>=e1i1toe1e1[ratenumber] && r<e1i1toe1e1[ratenumber]+e1i1toi1i1[ratenumber]) {
+							temptree1 = CopyTree(llconductor->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'j');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+					}
+					if (NextLabel=='k') {   //if it followed by an intron then we can extend the exon into the intron of extend the intron into the exon
+						if (r<e1i2toe1e1[ratenumber]) {
+							temptree1 = CopyTree(llconductornext->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'f');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+						if (r>=e1i2toe1e1[ratenumber] && r<e1i2toe1e1[ratenumber]+e1i2toi2i2[ratenumber]) {
+							temptree1 = CopyTree(llconductor->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'k');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+					}
+					if (NextLabel=='x') {   //similarly we can shorted or lengthen an exon into an intergenic sequence
+						if (r<e1xtoe1e1[ratenumber]) {
+							temptree1 = CopyTree(llconductornext->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'f');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+						if (r>=e1xtoe1e1[ratenumber] && e1xtoe1e1[ratenumber]+e1xtoxx[ratenumber]) {
+							temptree1 = CopyTree(llconductor->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'x');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+					}
+					break;
+				case 'g':
+					if (NextLabel=='i') {   //if it followed by an intron then we can extend the exon into the intron of extend the intron into the exon
+						if (r<e2i0toe2e2[ratenumber]) {
+							temptree1 = CopyTree(llconductornext->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'g');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+						if (r>=e2i0toe2e2[ratenumber] && r<e2i0toe2e2[ratenumber]+e2i0toi0i0[ratenumber]) {
+							temptree1 = CopyTree(llconductor->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'i');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+					}
+					if (NextLabel=='j') {   //if it followed by an intron then we can extend the exon into the intron of extend the intron into the exon
+						if (r<e2i1toe2e2[ratenumber]) {
+							temptree1 = CopyTree(llconductornext->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'g');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+						if (r>=e2i1toe2e2[ratenumber] && r<e2i1toe2e2[ratenumber]+e2i1toi1i1[ratenumber]) {
+							temptree1 = CopyTree(llconductor->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'j');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+					}
+					if (NextLabel=='k') {   //if it followed by an intron then we can extend the exon into the intron of extend the intron into the exon
+						if (r<e2i2toe2e2[ratenumber]) {
+							temptree1 = CopyTree(llconductornext->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'g');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+						if (r>=e2i2toe2e2[ratenumber] && r<e2i2toe2e2[ratenumber]+e2i2toi2i2[ratenumber]) {
+							temptree1 = CopyTree(llconductor->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'k');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+					}
+					if (NextLabel=='x') {   //similarly we can shorted or lengthen an exon into an intergenic sequence
+						if (r<e2xtoe2e2[ratenumber]) {
+							temptree1 = CopyTree(llconductornext->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'g');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+						if (r>=e2xtoe2e2[ratenumber] && e2xtoe2e2[ratenumber]+e2xtoxx[ratenumber]) {
+							temptree1 = CopyTree(llconductor->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'x');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+					}
+					break;					
+				case 'i':
 					if (NextLabel=='e') {   //if an exon sequence we can shorten or lengthen the intron into the exon.
-						if (r>=itoiei[ratenumber] && r<itoiei[ratenumber]+ietoii[ratenumber]) {
+						if (r<i0e0toi0i0[ratenumber]) {
 							temptree1 = CopyTree(llconductornext->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'i');
 							AddTree(temptree1,llconductor);
 							chainleng++;
 						}
-						if (r>=itoiei[ratenumber]+ietoii[ratenumber] && r<itoiei[ratenumber]+ietoii[ratenumber]+ietoee[ratenumber]) {
+						if (r>=i0e0toi0i0[ratenumber] && r<i0e0toi0i0[ratenumber]+i0e0toe0e0[ratenumber]) {
 							temptree1 = CopyTree(llconductor->tree,temptree2);
 							MutateTree(temptree1,NodeLocations[i],'e');
+							AddTree(temptree1,llconductor);
+							chainleng++;							
+						}
+					}
+					break;
+				case 'j':
+					if (NextLabel=='f') {   //if an exon sequence we can shorten or lengthen the intron into the exon.
+						if (r<i1e1toi1i1[ratenumber]) {
+							temptree1 = CopyTree(llconductornext->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'j');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+						if (r>=i1e1toi1i1[ratenumber] && r<i1e1toi1i1[ratenumber]+i1e1toe1e1[ratenumber]) {
+							temptree1 = CopyTree(llconductor->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'f');
+							AddTree(temptree1,llconductor);
+							chainleng++;							
+						}
+					}
+					break;
+				case 'k':
+					if (NextLabel=='g') {   //if an exon sequence we can shorten or lengthen the intron into the exon.
+						if (r<i2e2toi2i2[ratenumber]) {
+							temptree1 = CopyTree(llconductornext->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'k');
+							AddTree(temptree1,llconductor);
+							chainleng++;
+						}
+						if (r>=i2e2toi2i2[ratenumber] && r<i2e2toi2i2[ratenumber]+i2e2toe2e2[ratenumber]) {
+							temptree1 = CopyTree(llconductor->tree,temptree2);
+							MutateTree(temptree1,NodeLocations[i],'g');
 							AddTree(temptree1,llconductor);
 							chainleng++;							
 						}
@@ -644,14 +871,15 @@ int main(int argc, char *argv[])
 		}
 	}	
 	
-	//COLLECT DATA STEP
 	
+	//COLLECT DATA STEP
 	char data[NumNodes][chainleng];       //This array will hold the node labels for all trees in the linked list.
 	char TempArray[NumNodes];             //TreeToArray fn needs an array to store data in before it returns it.
 	char *TreeArray;                      //This holds the output of TreeToArray until it is put into data.
 	
 	
 	llconductor=llroot->next;
+	
 	
 	int i=0;
 	if ( llconductor != NULL ) {          //Move down the linked list dumping node labels into data matrix.
@@ -676,15 +904,32 @@ int main(int argc, char *argv[])
 		//    cout << endl;
 	}
 	
-	bool tooshort=0;
+	
 	if (cut) {
 		if (chainleng>maxlength) {
 			chainleng=maxlength;
 		}
 		else {
-			tooshort=1;
+			ifstream readshort;
+			ofstream addshort;
+			readshort.open("short");
+			int shortlines=0;
+			while (getline(readshort,line)) {
+				shortlines++;
+			}
+			readshort.close();
+			string shortfile[shortlines];
+			readshort.open("short");
+			for (int i=0; i<shortlines; i++) {
+				getline(readshort,shortfile[i]);
+			}
+			readshort.close();
+			addshort.open("short");
+			for (int i=0; i<shortlines; i++) {
+				addshort << shortfile[i] << endl;
+			}
+			addshort << "For the " << NumNodes << " node tree, only had " << chainleng << " letters, but wanted " << maxlength << "." << endl;
 		}
-
 	}
 	
 	int maxnodelabellength=0;
@@ -694,6 +939,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	int spaces = max(maxnodelabellength+5,10);
+	
 	
 	for (int j=0;j<NumNodes;j++) {  //return the node label together with the sequence at that node
 		cout << NodeLabelArray[j];
@@ -723,7 +969,7 @@ int main(int argc, char *argv[])
 	for (int j=0;j<NumNodes;j++) {
 		if (FindLeaf(mytree,NodeLocations[j]) == 1) {
 			outFile << NodeLabelArray[j];
-			for (int k=0; k<spaces-NodeLabelArray[j].size(); k++) {
+			for (int k=0; k<10-NodeLabelArray[j].size(); k++) {
 				outFile << " ";
 			}
 			for (i=0;i<chainleng;i++) {
@@ -743,11 +989,9 @@ int main(int argc, char *argv[])
 	}
 	outFile.close();
 	
-	outFile.open("randint");
-	outFile << rand();
-	outFile.close();
 	
-	if (tooshort) {
-		//cout << "REGENERATE! Sequence is too short." << endl;
-	}
+	ofstream outRand;
+	outRand.open("randint");
+	outRand << rand();
+	outRand.close();
 }

@@ -188,7 +188,19 @@ int main (int argc, char *argv[]) {
 							case 'e':
 								TP[i]++;
 								break;
+							case 'f':
+								FP[i]++;
+								break;
+							case 'g':
+								FP[i]++;
+								break;
 							case 'i':
+								FN[i]++;
+								break;
+							case 'j':
+								FN[i]++;
+								break;
+							case 'k':
 								FN[i]++;
 								break;
 							case 'x':
@@ -198,12 +210,128 @@ int main (int argc, char *argv[]) {
 								break;
 						}
 						break;
+					case 'f':
+						switch (XrateNodeSequence[i][j]) {
+							case 'e':
+								FP[i]++;
+								break;
+							case 'f':
+								TP[i]++;
+								break;
+							case 'g':
+								FP[i]++;
+								break;
+							case 'i':
+								FN[i]++;
+								break;
+							case 'j':
+								FN[i]++;
+								break;
+							case 'k':
+								FN[i]++;
+								break;
+							case 'x':
+								FN[i]++;
+								break;
+							default:
+								break;
+						}
+						break;
+					case 'g':
+						switch (XrateNodeSequence[i][j]) {
+							case 'e':
+								TP[i]++;
+								break;
+							case 'f':
+								FP[i]++;
+								break;
+							case 'g':
+								TP[i]++;
+								break;
+							case 'i':
+								FN[i]++;
+								break;
+							case 'j':
+								FN[i]++;
+								break;
+							case 'k':
+								FN[i]++;
+								break;
+							case 'x':
+								FN[i]++;
+								break;
+							default:
+								break;
+						}
+						break;						
 					case 'i':
 						switch (XrateNodeSequence[i][j]) {
 							case 'e':
 								FP[i]++;
 								break;
+							case 'f':
+								FP[i]++;
+								break;
+							case 'g':
+								FP[i]++;
+								break;
 							case 'i':
+								TP[i]++;
+								break;
+							case 'j':
+								FP[i]++;
+								break;
+							case 'k':
+								FP[i]++;
+								break;
+							case 'x':
+								FN[i]++;
+								break;
+						}
+						break;
+					case 'j':
+						switch (XrateNodeSequence[i][j]) {
+							case 'e':
+								FP[i]++;
+								break;
+							case 'f':
+								FP[i]++;
+								break;
+							case 'g':
+								FP[i]++;
+								break;
+							case 'i':
+								FP[i]++;
+								break;
+							case 'j':
+								TP[i]++;
+								break;
+							case 'k':
+								FP[i]++;
+								break;
+							case 'x':
+								FN[i]++;
+								break;
+						}
+						break;
+					case 'k':
+						switch (XrateNodeSequence[i][j]) {
+							case 'e':
+								FP[i]++;
+								break;
+							case 'f':
+								FP[i]++;
+								break;
+							case 'g':
+								FP[i]++;
+								break;
+							case 'i':
+								FP[i]++;
+								break;
+							case 'j':
+								FP[i]++;
+								break;
+							case 'k':
 								TP[i]++;
 								break;
 							case 'x':
@@ -216,7 +344,19 @@ int main (int argc, char *argv[]) {
 							case 'e':
 								FP[i]++;
 								break;
+							case 'f':
+								FP[i]++;
+								break;
+							case 'g':
+								FP[i]++;
+								break;
 							case 'i':
+								FP[i]++;
+								break;
+							case 'j':
+								FP[i]++;
+								break;
+							case 'k':
 								FP[i]++;
 								break;
 							case 'x':
