@@ -80,7 +80,6 @@ int main (int argc, char *argv[]) {
 			cin >> unused[i];
 		}
 	}
-
 	
 	//Find size of largest gff file and declare an array large enough to hold all the data
 	ifstream inFile;
@@ -120,7 +119,7 @@ int main (int argc, char *argv[]) {
 		}
 		numgfflines-=unused[n];
 		inFile.close();
-	
+
 		string gfflines[numgfflines];
 		inFile.open(argv[n]);
 		if (unused[n]>0) {
@@ -132,7 +131,7 @@ int main (int argc, char *argv[]) {
 			getline(inFile,gfflines[i]);
 		}
 		inFile.close();
-	
+
 		int tablocation[10];
 		int location;
 		for (int i=0; i<numgfflines; i++) {
@@ -144,6 +143,10 @@ int main (int argc, char *argv[]) {
 					tablocation[location]=j;
 					location++;
 				}
+			}
+			if (location != 9) {
+				cerr << "Failed to read line " << i+1 << " of file " << argv[n] << ". Make sure you have specified the right number of header lines for this file." << endl;
+				exit(1);
 			}
 			for (int j=0; j<9; j++) {
 				gffdata[n-1][i][j]=gfflines[i].substr(tablocation[j]+1,tablocation[j+1]-tablocation[j]-1);
@@ -174,7 +177,7 @@ int main (int argc, char *argv[]) {
 	}
 	else {
 		root->data=1;
-		cerr << "Could not read line one from " << argv[1] << " the output will begin with an extra column of x." << endl;
+		cerr << "Could not read line one from " << argv[1] << " the output will begin with an extra column of x. Make sure you have specified the right number of header lines." << endl;
 	}
 	root->left=NULL;
 	root->right=NULL;
@@ -310,6 +313,7 @@ int main (int argc, char *argv[]) {
 	string sequences[numsequences];
 	bool inmrna;
 	bool incds;
+	bool inexon;
 	int mRNA_start;
 	int cds_start;
 	int cds_length;
@@ -334,10 +338,13 @@ int main (int argc, char *argv[]) {
 									inmrna=1;
 									mRNA_start=startfeature;
 								}
-								if (gffdata[k][l][2]=="cds") {
+								if (gffdata[k][l][2]=="CDS") {
 									incds=1;
 									cds_start=startfeature;
 									cds_length=endfeature-startfeature+1;
+								}
+								if (gffdata[k][l][2]=="exon") {
+									inexon=1;
 								}
 							}
 						}
@@ -364,8 +371,8 @@ int main (int argc, char *argv[]) {
 				}
 				endframe=(transitions[j+1]-transitions[j]-startframe)%3;
 			}
-			if (inmrna && !incds) {
-				if (thisletter != 'i' && thisletter != 'j' && thisletter != 'k') {
+			if (inmrna && !incds && !inexon) {
+				if (thisletter != 'i' && thisletter != 'j' && thisletter != 'k' && thisletter != 'y' && thisletter != 'z') {
 					switch (startframe) {
 						case 0:
 							thisletter='i';
@@ -380,7 +387,13 @@ int main (int argc, char *argv[]) {
 							break;
 					}
 				}
+				if (thisletter == 'y') {
+					thisletter=='z';
+				}
 				endframe=endframe;
+			}
+			if (inmrna && inexon && !incds) {
+				thisletter == 'y';
 			}
 			if (!inmrna) {
 				thisletter='x';
@@ -391,6 +404,7 @@ int main (int argc, char *argv[]) {
 		}
 		sequences[i]+='x';
 	}
+	
 	
 	//create output
 	ofstream outFile;

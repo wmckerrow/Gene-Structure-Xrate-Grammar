@@ -132,6 +132,18 @@ int main (int argc, char *argv[]) {
 	
 	/*
 	for (int i=0; i<numnodes; i++) {
+		cout << endl << nodelabels[i] << endl;
+		for (int j=0; j<sequencelength; j++) {
+			for (int k=0; k<3; k++) {
+				cout << logpps[i][j][k] << " ";
+			}
+			cout << endl;
+		}
+	}
+	*/
+	
+	/*
+	for (int i=0; i<numnodes; i++) {
 		cout << nodelabels[i] << " ";
 	}
 	cout << endl;

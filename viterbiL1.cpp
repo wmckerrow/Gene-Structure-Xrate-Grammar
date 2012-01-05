@@ -101,7 +101,6 @@ int main (int argc, char *argv[]) {
 				else {
 					cerr << "from_string failed" << endl;
 				}
-
 			}
 			if (thisprobstring[2]=='f'){
 				if(from_string<float>(logpps[thisnode][position-1][1], currentpp, std::dec)) {
@@ -166,6 +165,17 @@ int main (int argc, char *argv[]) {
 	}
 	ppfile.close();
 	
+	/*
+	for (int i=0; i<numnodes; i++) {
+		cout << endl << nodelabels[i] << endl;
+		for (int j=0; j<sequencelength; j++) {
+			for (int k=0; k<7; k++) {
+				cout << logpps[i][j][k] << " ";
+			}
+			cout << endl;
+		}
+	}
+	 */
 	
 	/*
 	for (int i=0; i<numnodes; i++) {
@@ -317,11 +327,11 @@ int main (int argc, char *argv[]) {
 			
 			//best sequence ending x
 			if (minexonscore < scoreX) {
-				nextscoreX = minexonscore + logpps[i][j][5];
+				nextscoreX = minexonscore + logpps[i][j][6];
 				nextsequenceX = minexonsequence + "x";
 			}
 			else {
-				nextscoreX = scoreX + logpps[i][j][5];
+				nextscoreX = scoreX + logpps[i][j][6];
 				nextsequenceX = sequenceX + "x";
 			}
 			//update scores and sequences
@@ -339,6 +349,9 @@ int main (int argc, char *argv[]) {
 			sequenceJ=nextsequenceJ;
 			sequenceK=nextsequenceK;
 			sequenceX=nextsequenceX;
+			
+			//cout << scoreE << " " << scoreI << " " << scoreX << endl;
+			//cout << sequenceE << endl << sequenceI << endl << sequenceX << endl;
 		}
 		arsequences[i]=sequenceX;
 		arscores[i]=scoreX;

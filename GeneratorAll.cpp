@@ -162,13 +162,14 @@ TreeNode *ParseTree (string Newick) {    //generates a new tree from a string in
 }
 
 TreeNode *CopyTree(TreeNode *oldtree, TreeNode *newtree) {  //returns a pointer to an exact copy of a preexisting tree
-	TreeNode *temptree;
+	//TreeNode *temptree;
 	newtree = new TreeNode;
 	newtree->x=oldtree->x;
 	for (int i=0; i<MAXCHILDREN; i++) {
 		if (oldtree->children[i] != NULL) {
-			temptree = CopyTree(oldtree->children[i],newtree->children[i]);
-			newtree->children[i] = temptree;
+			//temptree = CopyTree(oldtree->children[i],newtree->children[i]);
+			//newtree->children[i] = temptree;
+			newtree->children[i] = CopyTree(oldtree->children[i],newtree->children[i]);
 		}
 		else {
 			newtree->children[i] = NULL;
@@ -195,7 +196,7 @@ void MutateTree (TreeNode *mutatefrom, int mutateat[MAXDEPTH], char mutateto) { 
 			mutatehere=mutatehere->children[mutateat[i]];
 		}
 		else {
-			cout << "Warning: Trying to mutate part of the tree that doesn't exist." << endl;
+			cerr << "Warning: Trying to mutate part of the tree that doesn't exist." << endl;
 		}
 		i++;
 	}

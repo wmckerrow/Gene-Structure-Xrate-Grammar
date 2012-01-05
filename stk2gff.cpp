@@ -6,6 +6,37 @@
 #include <math.h>
 using namespace std;
 
+bool iscds(char letter) {
+	string cdsletters="efg";
+	if (cdsletters.find(letter) != string::npos) {
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
+bool isintron(char letter) {
+	string intronletters="ijkz";
+	if (intronletters.find(letter) != string::npos) {
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
+bool isexon(char letter) {
+	string exonletters="efgy";
+	if (exonletters.find(letter) != string::npos) {
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
+
 int main (int argc, char *argv[]) {
 	//make sure we have enough input
 	if (argc < 5) {
@@ -268,8 +299,12 @@ int main (int argc, char *argv[]) {
 	string label;
 	int startgene;
 	int endgene;
+	bool foundcds;
 	int startcds;
 	int endcds;
+	bool foundexon;
+	int startexon;
+	int endexon;
 	int mrnanum;
 	int times=0;
 	for (int i=0; i<numlines; i++) {
@@ -289,7 +324,7 @@ int main (int argc, char *argv[]) {
 				startgene++;	
 			}
 			endgene=startgene;
-			while (!((stockholmfile[i][endgene-1]=='e' || stockholmfile[i][endgene-1]=='f' || stockholmfile[i][endgene-1]=='g') && stockholmfile[i][endgene]=='x') && endgene < stockholmfile[i].length()-1) {
+			while (stockholmfile[i][endgene] != 'x' && endgene < stockholmfile[i].length()-1) {
 				endgene++;
 			}
 			if (times < 5) {
@@ -300,16 +335,44 @@ int main (int argc, char *argv[]) {
 				mrnanum++;
 				outFile << label << "	" << "." << '\t' << "gene" << '\t' << segposition[startgene-labelcolumns] << '\t' << segposition[endgene-labelcolumns]-1 << '\t' << "." << '\t' << "+" << '\t' << "." << '\t' << "ID=gene" << mrnanum << endl;
 				outFile << label << "	" << "." << '\t' << "mRNA" << '\t' << segposition[startgene-labelcolumns] << '\t' << segposition[endgene-labelcolumns]-1 << '\t' << "." << '\t' << "+" << '\t' << "." << '\t' << "ID=mRNA" << mrnanum << ";parent=gene" << mrnanum << endl;
-				startcds=startgene;
-				while (startcds < endgene) {
-					endcds=startcds;
-					while (!((stockholmfile[i][endcds-1]=='e' || stockholmfile[i][endcds-1]=='f' || stockholmfile[i][endcds-1]=='g') && (stockholmfile[i][endcds]=='i' || stockholmfile[i][endcds]=='j' || stockholmfile[i][endcds]=='k')) && endcds <= endgene -1 ) {
-						endcds++;
+				foundcds=0;
+				foundexon=0;
+				for (int j=startgene; j<endgene; j++) {
+					if ((stockholmfile[i][j]=='e' || stockholmfile[i][j]=='f' || stockholmfile[i][j]=='e') && !foundcds) {
+						foundcds=1;
+						startcds=j;
 					}
-					outFile << label << "	" << "." << '\t' << "CDS" << '\t' << segposition[startcds-labelcolumns] << '\t' << segposition[endcds-labelcolumns]-1 << '\t' << "." << '\t' << "+" << '\t' << "." << '\t' << "Parent=mRNA" << mrnanum << endl;
-					startcds=endcds;
-					while (!((stockholmfile[i][startcds-1]=='i' || stockholmfile[i][startcds-1]=='j' || stockholmfile[i][startcds-1]=='k') && (stockholmfile[i][startcds]=='e' || stockholmfile[i][startcds]=='f' || stockholmfile[i][startcds]=='g')) && startcds < endgene ) {
-						startcds++;
+					if (stockholmfile[i][j]=='y' && !foundexon) {
+						foundexon=1;
+						startexon=j;
+					}
+				}
+				if (foundcds) {
+					while (startcds < endgene) {
+						endcds=startcds;
+						while (iscds(stockholmfile[i][endcds]) && endcds <= endgene -1 ) {
+							endcds++;
+						}
+						endcds--;
+						outFile << label << "	" << "." << '\t' << "CDS" << '\t' << segposition[startcds-labelcolumns] << '\t' << segposition[endcds-labelcolumns+1]-1 << '\t' << "." << '\t' << "+" << '\t' << "." << '\t' << "Parent=mRNA" << mrnanum << endl;
+						startcds=endcds+1;
+						while (!iscds(stockholmfile[i][startcds]) && startcds < endgene ) {
+							startcds++;
+						}
+					}
+				}
+				if (foundexon) {
+					while (startexon < endgene) {
+						endexon=startexon;
+						while (isexon(stockholmfile[i][endexon]) && endcds <= endgene -1) {
+							endexon++;
+						}
+						endexon--;
+						outFile << label << "	" << "." << '\t' << "exon" << '\t' << segposition[startexon-labelcolumns] << '\t' << segposition[endexon-labelcolumns+1]-1 << '\t' << "." << '\t' << "+" << '\t' << "." << '\t' << "Parent=mRNA" << mrnanum << endl;
+						startexon=endexon;
+						while (!stockholmfile[i][startexon]=='y' && startcds < endgene) {
+							startexon++;
+						}
 					}
 				}
 			}
