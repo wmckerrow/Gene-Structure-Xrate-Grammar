@@ -7,7 +7,7 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
-		cerr << "Please execute like " << argv[0] << " L1stk" << endl;
+		cerr << "Please execute like " << argv[0] << " L2stk" << endl;
 	}
 	ifstream inFile;
 	inFile.open(argv[1]);
@@ -26,17 +26,23 @@ int main(int argc, char *argv[]) {
 				}
 				if (space == 1) {
 					switch (line[i]) {
-						case 'f':
-							cout << 'e';
+						case 'h':
+							cout << 'f';
 							break;
-						case 'g':
-							cout << 'e';
+						case 'a':
+							cout << 'g';
 							break;
-						case 'j':
-							cout << 'i';
+						case 'b':
+							cout << 'g';
 							break;
-						case 'k':
-							cout << 'i';
+						case 't':
+							cout << 'j';
+							break;
+						case 'l':
+							cout << 'k';
+							break;
+						case 'm':
+							cout << 'k';
 							break;
 						default:
 							cout << line[i];
@@ -46,14 +52,14 @@ int main(int argc, char *argv[]) {
 				else {
 					cout << line[i];
 				}
-
+				
 			}
 			cout << endl;
 		}
 		else {
 			cout << line << endl;
 		}
-
+		
 	}
 	return 0;
 }

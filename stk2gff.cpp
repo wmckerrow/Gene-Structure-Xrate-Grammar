@@ -17,7 +17,7 @@ bool iscds(char letter) {
 }
 
 bool isintron(char letter) {
-	string intronletters="ijkz";
+	string intronletters="ijkzuvtlm";
 	if (intronletters.find(letter) != string::npos) {
 		return 1;
 	}
@@ -27,7 +27,7 @@ bool isintron(char letter) {
 }
 
 bool isexon(char letter) {
-	string exonletters="efgy";
+	string exonletters="efgy53hab";
 	if (exonletters.find(letter) != string::npos) {
 		return 1;
 	}
@@ -201,7 +201,7 @@ int main (int argc, char *argv[]) {
 	}
 	int xconstseglength=(int)(5000.0-((maxcds-mincds)/2.0-xconstcols)*nonconstseglength)/xconstcols;
 	
-	//find positions of each segment
+	//find positions of each segment. letter that are not e, f, g, or x will get the non-const exon column length
 	int numsegpositions=stockholmfile[0].length()-labelcolumns+1;
 	int segposition[numsegpositions];
 	segposition[0]=1;
@@ -293,7 +293,7 @@ int main (int argc, char *argv[]) {
 		outFile << tree;
 		outFile.close();
 	}
-	
+		
 	//write gff files
 	int labelchars;
 	string label;
@@ -302,11 +302,14 @@ int main (int argc, char *argv[]) {
 	bool foundcds;
 	int startcds;
 	int endcds;
-	bool foundexon;
-	int startexon;
-	int endexon;
+	bool found5prime;
+	int start5prime;
+	int end5prime;
+	bool found3prime;
+	int start3prime;
+	int end3prime;
 	int mrnanum;
-	int times=0;
+	int times=0; //debugging line
 	for (int i=0; i<numlines; i++) {
 		labelchars=0;
 		while (stockholmfile[i][labelchars]!=' ') {
@@ -320,31 +323,52 @@ int main (int argc, char *argv[]) {
 		mrnanum=0;
 		startgene=labelcolumns+1;
 		while (startgene < stockholmfile[i].length()-1) {
-			while (!(stockholmfile[i][startgene-1]=='x' && stockholmfile[i][startgene]=='e') && startgene < stockholmfile[i].length()-1) {
+			while (!(stockholmfile[i][startgene-1]=='x' && stockholmfile[i][startgene]!='x') && startgene < stockholmfile[i].length()-1) {
 				startgene++;	
 			}
 			endgene=startgene;
 			while (stockholmfile[i][endgene] != 'x' && endgene < stockholmfile[i].length()-1) {
 				endgene++;
 			}
+			/*
 			if (times < 5) {
-				//cout << startgene << " " << endgene << endl;
+				cout << startgene << " " << endgene << endl;
 				times++;
 			}
+			 */
 			if (startgene < stockholmfile[i].length()-1) {
 				mrnanum++;
 				outFile << label << "	" << "." << '\t' << "gene" << '\t' << segposition[startgene-labelcolumns] << '\t' << segposition[endgene-labelcolumns]-1 << '\t' << "." << '\t' << "+" << '\t' << "." << '\t' << "ID=gene" << mrnanum << endl;
 				outFile << label << "	" << "." << '\t' << "mRNA" << '\t' << segposition[startgene-labelcolumns] << '\t' << segposition[endgene-labelcolumns]-1 << '\t' << "." << '\t' << "+" << '\t' << "." << '\t' << "ID=mRNA" << mrnanum << ";parent=gene" << mrnanum << endl;
 				foundcds=0;
-				foundexon=0;
+				found5prime=0;
+				found3prime=0;
 				for (int j=startgene; j<endgene; j++) {
-					if ((stockholmfile[i][j]=='e' || stockholmfile[i][j]=='f' || stockholmfile[i][j]=='e') && !foundcds) {
+					if (iscds(stockholmfile[i][j]) && !foundcds) {
 						foundcds=1;
 						startcds=j;
 					}
-					if (stockholmfile[i][j]=='y' && !foundexon) {
-						foundexon=1;
-						startexon=j;
+					if (stockholmfile[i][j] == '5' && !found5prime) {
+						found5prime=1;
+						start5prime=j;
+					}
+					if (stockholmfile[i][j] == '3' && !found3prime) {
+						found3prime=1;
+						start3prime=j;
+					}
+				}
+				if (found5prime) {
+					while (start5prime < endgene) {
+						end5prime=start5prime;
+						while (stockholmfile[i][end5prime] == '5' && end5prime <= endgene -1 ) {
+							end5prime++;
+						}
+						end5prime--;
+						outFile << label << "	" << "." << '\t' << "5UTR" << '\t' << segposition[start5prime-labelcolumns] << '\t' << segposition[end5prime-labelcolumns+1]-1 << '\t' << "." << '\t' << "+" << '\t' << "." << '\t' << "Parent=mRNA" << mrnanum << endl;
+						start5prime=end5prime+1;
+						while (stockholmfile[i][start5prime] != '5' && start5prime < endgene ) {
+							start5prime++;
+						}
 					}
 				}
 				if (foundcds) {
@@ -361,17 +385,17 @@ int main (int argc, char *argv[]) {
 						}
 					}
 				}
-				if (foundexon) {
-					while (startexon < endgene) {
-						endexon=startexon;
-						while (isexon(stockholmfile[i][endexon]) && endcds <= endgene -1) {
-							endexon++;
+				if (found3prime) {
+					while (start3prime < endgene) {
+						end3prime=start3prime;
+						while (stockholmfile[i][end3prime] == '3' && end3prime <= endgene -1 ) {
+							end3prime++;
 						}
-						endexon--;
-						outFile << label << "	" << "." << '\t' << "exon" << '\t' << segposition[startexon-labelcolumns] << '\t' << segposition[endexon-labelcolumns+1]-1 << '\t' << "." << '\t' << "+" << '\t' << "." << '\t' << "Parent=mRNA" << mrnanum << endl;
-						startexon=endexon;
-						while (!stockholmfile[i][startexon]=='y' && startcds < endgene) {
-							startexon++;
+						end3prime--;
+						outFile << label << "	" << "." << '\t' << "3UTR" << '\t' << segposition[start3prime-labelcolumns] << '\t' << segposition[end3prime-labelcolumns+1]-1 << '\t' << "." << '\t' << "+" << '\t' << "." << '\t' << "Parent=mRNA" << mrnanum << endl;
+						start3prime=end3prime+1;
+						while (stockholmfile[i][start3prime] != '3' && start3prime < endgene ) {
+							start3prime++;
 						}
 					}
 				}
