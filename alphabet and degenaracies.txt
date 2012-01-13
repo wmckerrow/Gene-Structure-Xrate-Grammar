@@ -1,0 +1,26 @@
+Alphabet
+5 5' UTR
+u intron in 5' UTR
+3 3' UTR
+v intron in 3' UTR
+e CDS reading frame 0
+f CDS phase 2 not beginning aa,ag or ga
+g CDS phase 1 not beginning a or g
+h CDS reading frame 1 beginning aa,ag or ga (=f in xrate)
+a CDS reading frame 2 beginning a (=g in xrate)
+b CDS reading from 2 beginning g (=g in xrate)
+i intron following CDS with no extra bases
+j intron following CDS with 1 extra base (not t)
+k intron following CDS with 2 extra bases (not ta or tg)
+t intron following CDS with 1 extra base, t (=j in xrate)
+l intron following CDS with 2 extra bases, ta (=k in xrate)
+m intron following CDS with 2 extra base, tg (=k in xrate)
+x intergenic
+
+Degeneracies
+y 5,3,e,f,g(,h,a,b) (expressed)
+z i,j,k,u,v(,t,l,m) (any intron)
+n 5,3,x (not translated)
+* all letters (no information)
+
+Nota Bene: The phases are gff3 numbering.

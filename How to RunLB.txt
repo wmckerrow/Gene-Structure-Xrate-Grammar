@@ -1,0 +1,75 @@
+How to generate and test data (L2 grammar and UTRs)
+1) Execute Generator_L1UTR to generate an stk format alignment in the 
+L1 alphabet with UTRs. The program takes as input a parameter file in 
+the generator format and a location to put the generated stk file. It 
+prints the full alignment including ancestral sequences to standard 
+out. You'll want to save this for use in the next step. For example you 
+might run Generator_L1UTR as follows:
+./Generator_L1UTR input_L1UTR.gene out.stk > genout
+
+2) Generate viable bases for generators output. Use the GenerateBases 
+script. It takes as input generator's output and prints bases to 
+standard out. You'll need to pipe these to file so they can be accessed 
+by viterbi. For example:
+./GenerateBases genout > bases
+
+3) Train xrate. xrate takes an stk file as input. In addition it needs 
+a grammar file preceded by -g. To tell xrate that we want to train use 
+-t followed by the location you want it to write the trained grammar. 
+For example:
+xrate -g geneStructure_UTR_ep.eg out.stk -t trained.eg
+
+4) Get posterior probabilities from xrate. Now you will want to specify 
+the trained grammar and use -arpp to tell xrate that you want posterior 
+probabilities. xrate will print to probabilities to standard out. 
+You'll need to save these as input for viterbi. For example
+xrate -g trained.eg out.stk -arpp > ppout
+
+5) Run viterbi. Use viterbi_L2UTR to include UTRs and prevent splicing 
+in a stop codon. This script takes the outputs of xrate and 
+GenerateBases as input and sends the ancestral reconstruction to 
+standard out. You'll want to pipe this into file so you can convert it 
+to gff3 format. For example:
+./viterbi_L2UTR ppout bases > vitout
+
+6) Convert generator and viterbi output into gff3 format using stk2gff. 
+This code is currently being streamlined so the code you want is 
+oldstk2gff.cpp (there is no makefile specification for this). At the 
+moment it takes 4 arguments: The number of non alignment rows in the 
+stk file (eg trees, blank lines etc) followed by the stk file followed 
+by a name for the gff files followed by whether there is a tree (no, No 
+, NO, n, N, 0 all indicate no tree.) stk2gff will generate base 
+position for each segment. You'll need to save these so you use the 
+same segmentation for viterbi and generator. Append -w and a location 
+to write position when you convert the generator output. Append -r and 
+the position file when you convert the viterbi output. For example:
+./stk2gff 0 genout fromgen no -w segfile
+./stk2gff 0 vitoutl fromvit no -r segfile
+This will create seperate gff files for each node called 
+argument_nodelabel.gff.
+
+7) Next you'll need to convert from gff3 to gtf so that you can use 
+Eval. Use the gff3_to_gtf.gl provided in eval. It takes a gff3 file as 
+input and prints the gtf file to standard out. For example:
+gff3_to_gtf.pl fromvit_C.gff > fromvit_C.gtf
+gff3_to_gtf.pl fromgen_C.gff > fromgen_C.gtf
+
+8) You can either run the eval GUI by giving all gtf files as arguments 
+to eval.pl or you can use evaluate_gtf.pl. evaluate_gtf.pl takes the 
+correct annotation (from generator) followed by the constructed 
+annotation (from viterbi) and sends its evaluation to standard out. For 
+example:
+evaluate_gtf.pl fromgen_C.gtf fromvit_C.gtf > evalout
+
+9) If you chose to use evaluate_gtf, ParseEval will help you find the 
+information you are interested in. ParseEval's first argument is the 
+output from evaluate_gtf. Next specify a text file the information can 
+be appended to. Finally specify the data you are interested in. You can 
+do this with any number of pairs of integers. The first number gives 
+the line you want and the second gives the column. For example if you 
+want to append a line with
+actual exons, predicted exons, exon specificity, exon sensitivity you 
+would enter
+./ParseEval evalout evallines 79 2 79 3 11 3 12 3
+This final step is only useful if you want to repeat this process many 
+times to get an average effectiveness.

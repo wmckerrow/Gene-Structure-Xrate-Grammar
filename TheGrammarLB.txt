@@ -1,0 +1,50 @@
+	The current grammar is geneStructure_UTR_ep.eg. First it generates 
+sequences according to the hmm specified in hmm.pdf with transitions 
+from a letter to itself also allowed. The hmm emits "pseudoterminals" 
+indicated by capital letters. Each pseudoterminal specifies a letter 
+for the ancestral sequence and a mutation rate matrix for all the 
+alphabet letters. One rate is used for a species in the tree and 
+another is used for each evidence node. This allows us account for the 
+fact that some evidence may be better than other evidence. Using the 
+initial letter, a tree and the rate matrices the psuedoterminal 
+generates an alignment column. Since the pseudoterminals are generated 
+in one step and then the alignment columns are generated in a separate 
+step it is possible for the non-root nodes to have illegal sequences 
+such as xi or je. We will later correct this by enforcing the grammar 
+at each node in the viterbi code. Note that for ease of coding all 
+transitions and initial letter are possible, but the probabilities for 
+illegal transitions are all 0. It is theoretically possible that these 
+values could be trained to a nonzero value, but this probably won't 
+happen unless the training data is really bad. (I think xrate has a 
+constant command that will prevent EM from occurring on some 
+parameters; this should be implemented.)
+	Now for some specifics about whats going on in the file. First are the 
+probability and rate parameters. The probability that a letter will 
+appear on the root is 1 if it is the letter of the pseudoterminal and 0 
+otherwise. In other words if the pseudoterminal is X then x will appear 
+on the root with probability 1. Next are the initial probabilities for 
+transitions in the hmm. The probability for illegal transitions is set 
+to 0. The other probabilities are chosen somewhat arbitrarily and left 
+up to the EM algorithm to sort out. All the rate parameters are set to 
+an initial 0.001. Again I presume that the EM algorithm will find the 
+best values for the rates.
+	Next are the Markov chains. These describe how a psuedoterminal 
+generates an alignment column. We need one Markov chain for each 
+psuedoterminal for the main tree and another for each pseudoterminal 
+for each leaf. This is accomplished by using xrate's marco system. Each 
+chain has unique matrix of rate parameters and the main tree chain have 
+parameters for the initial probability. These initial probabilities 
+have all been set to 0 or 1 to make sure that the root sequence 
+respects the grammar.
+	Next are the hybrid chains. Hybrid chains simply tell us which Markov 
+chain to use where. We need hybrid chains since we want to use 
+different Markov chains in different parts of the tree. Then we have 
+the grammar rules. Using macro loops a line is create for each possible 
+transition, both legal and illegal. Illegal transitions will have a 
+probability of 0.
+	Finally we have the alphabet. We list all the letters in the grammar 
+followed by the degeneracies that are necessary to allow for evidence 
+(such as EST) that doesn't specify reading frame or UTR vs CDS. I've 
+also included the n degeneracy to allow for evidence that only has 
+translated regions. (In case protein alignment is a kind of evidence 
+that people use.)
