@@ -16,13 +16,22 @@ bool from_string(T& t,
 }
 
 int main (int argc, char *argv[]) {
-	if (argc < 2) {
+	if (argc < 3) {
 		cerr << "Please execute like " << argv[0] << " ppfile TransBases" << endl;
 		exit(1);
 	}
 	
-	//float multi=atof(argv[2]);
+	//This is for debugging. Use this if you want information about a specific part of the algorithm function.
+	int debugline=-1;
+	int debugposition=-1;
+	/*
+	if (argc==5) {
+		debugline=atoi(argv[3]);
+		debugposition=atoi(argv[4]);
+	}
+	 */
 	
+	//Open the ancestral reconstruction posterior probabilities out put of xrate and get number of nodes and sequence length from it.
 	ifstream ppfile;
 	ppfile.open(argv[1]);
 	if (!ppfile) {
@@ -47,13 +56,21 @@ int main (int argc, char *argv[]) {
 		}
 	}
 	
+	//Declare an array to contain all the posterior probability scores. The strange declaration method method since declaring very large array can cause a stack overflow.
 	string startline;
 	string nodelabels[numnodes+1];
 	int thisnode=0;
 	string thislabel;
 	string trash;
 	string thisprobstring;
-	float logpps[numnodes][sequencelength][11];
+	float ***logpps;
+	logpps = new float**[numnodes];
+	for (int i=0; i<numnodes; i++) {
+		logpps[i]=new float*[sequencelength];
+		for (int j=0; j<sequencelength; j++) {
+			logpps[i][j] = new float[11];
+		}
+	}
 	for (int i=0; i<numnodes; i++) {
 		for (int j=0; j<sequencelength; j++) {
 			for (int k=0; k<11; k++) {
@@ -65,17 +82,18 @@ int main (int argc, char *argv[]) {
 	string positionstr;
 	int position;
 	
+	//Open ppfile and extract posterior probabilities into the array declared above.
 	ppfile.open(argv[1]);
 	ppfile >> startline;
-	while (startline != "#=GS") {
+	while (startline != "#=GS") { //Poster probability lines begin #=GS
 		ppfile >> startline;
 	}
 	ppfile >> thislabel;
 	nodelabels[0]=thislabel;
 	bool firstime=1;
 	
-	while (startline != nodelabels[0]) {
-		if (!firstime) {
+	while (startline != nodelabels[0]) { //Stop if we've gotten the alignment.
+		if (!firstime) { //Following #=GS is the label for the node the posterior probabilities concern. We need to get this and then check whether we have moved on to the next node.
 			ppfile >> thislabel;
 		}
 		firstime=0;
@@ -84,18 +102,18 @@ int main (int argc, char *argv[]) {
 			nodelabels[thisnode]=thislabel;
 		}
 		ppfile >> trash;
-		while (trash[0]!='c') {
+		while (trash[0]!='c') { //we don't care about the next few entries in a line - upto and including "columns"
 			ppfile >> trash;
 		}
 		ppfile >> positionstr;
-		if (!from_string<int>(position,positionstr.substr(1,positionstr.length()-2),std::dec)) {
+		if (!from_string<int>(position,positionstr.substr(1,positionstr.length()-2),std::dec)) { //After "columns" is the sequence position in parentheses.
 			cerr << "from_string failed" << endl;
 		}
 		ppfile >> thisprobstring;
-		while (thisprobstring[0]=='P') {
-			currentpp=thisprobstring.substr(5,thisprobstring.length()-5);
+		while (thisprobstring[0]=='P') { //Next come the posterior probabilities entries, which begin P. Note that the way this is set up the #=GS entry beginning the next line will be read into thisprobstring, but it will be thrown away since it doesn't being 'P'.
+			currentpp=thisprobstring.substr(5,thisprobstring.length()-5); //Everything after P(x)= is the probability
 			
-			if (thisprobstring[2]=='e'){
+			if (thisprobstring[2]=='e'){ //The third character is the letter whose probability this entry gives.
 				if(from_string<float>(logpps[thisnode][position-1][0], currentpp, std::dec)) {
 					logpps[thisnode][position-1][0]=-log(logpps[thisnode][position-1][0]);
 				}
@@ -208,10 +226,11 @@ int main (int argc, char *argv[]) {
 	}
 	ppfile.close();
 	
+	//Open the file containing the bases surrounding transitions and read them into memory. Odd number lines specify which nodes use the bases in the following (even numbered) line.
 	ifstream basesfile;
 	basesfile.open(argv[2]);
 	if (!basesfile) {
-		cerr << "Unable to open input file " << argv[2] << endl;
+		cerr << "Unable to open bases file " << argv[2] << endl;
 		exit(1);
 	}
 	
@@ -229,7 +248,7 @@ int main (int argc, char *argv[]) {
 	}
 	basesfile.close();
 	
-	/*
+	/* //Output for debugging
 	for (int i=0; i<numnodes; i++) {
 		cout << endl << nodelabels[i] << endl;
 		for (int j=0; j<sequencelength; j++) {
@@ -258,7 +277,7 @@ int main (int argc, char *argv[]) {
 	}
 	 */
 	 
-	
+	//Mass declaration of variables for viterbi algorithm. While a little clunky I think the viterbi algorithm is a little less opaque if we do it this way.
 	string sequenceE;
 	string sequenceF;
 	string sequenceH;
@@ -379,11 +398,9 @@ int main (int argc, char *argv[]) {
 		scoreU=0;
 		scoreV=0;
 		
-		for (int j=0; j<sequencelength; j++) {
-			//cout << nodelabels[i] << " " << j+1 << ": score(g)=" << logpps[i][j][2] << " score(k)=" << logpps[i][j][5] << endl;
-			//cout << nodelabels[i] << " " << j+1 << ": scoreG=" << scoreG << " scoreK=" << scoreK << endl;
+		for (int j=0; j<sequencelength; j++) { //For the viterbi algorithm at each sequence position we find the best scoring sequence ending with each letter.
 			
-			if (sequencegroupnum == -1) {
+			if (sequencegroupnum == -1) { //For ancestral sequences the bases are not known so we set them to x.
 				base1='x';
 				base2='x';
 				base3='x';
@@ -396,7 +413,15 @@ int main (int argc, char *argv[]) {
 				base4 = basestrings[sequencegroupnum][5*j+3];
 			}
 			
-			//best sequence ending e
+			/* //Output for debugging
+			if (i==debugline && j==debugposition) {
+				cout << "Bases are " << base1 << " " << base2 << " " << base3 << " " << base4 << endl;
+				cout << "scoreF = " << scoreF << " score(F)=" << logpps[i][j][1] << endl;
+				cout << "scoreT = " << scoreT << " score(T)=" << logpps[i][j][4] << endl;
+			}
+			 */
+			
+			//Find the best sequence and score ending e
 			nextscoreE=scoreE+logpps[i][j][0];
 			nextsequenceE=sequenceE+"e";
 			if (scoreX+logpps[i][j][0] < nextscoreE) {
@@ -414,12 +439,20 @@ int main (int argc, char *argv[]) {
 			
 			//best sequence ending f
 			nextscoreF = scoreF + logpps[i][j][1];
+			if (i==debugline && j==debugposition) {
+				cout << "nextscoreF is " << nextscoreF << endl;
+			}
 			nextsequenceF = sequenceF + "f";
 			if (scoreJ+logpps[i][j][1] < nextscoreF && !((base3=='a' && base4=='a') || (base3=='a' && base4=='g') || (base3=='g' && base4=='a'))) {
+				if (i==debugline && j==debugposition) {
+				}
 				nextscoreF = scoreJ + logpps[i][j][1];
 				nextsequenceF = sequenceJ + "f";
 			}
 			if (scoreT+logpps[i][j][1] < nextscoreF && !((base3=='a' && base4=='a') || (base3=='a' && base4=='g') || (base3=='g' && base4=='a'))) {
+				if (i==debugline && j==debugposition) {
+					cout << "in 2" << endl;
+				}
 				nextscoreF = scoreT + logpps[i][j][1];
 				nextsequenceF = sequenceT + "f";
 			}
@@ -651,6 +684,7 @@ int main (int argc, char *argv[]) {
 		arscores[i]=scoreX;
 	}
 	
+	//if (argc != 5) { //Can suppress normal output if you are debugging.
 	int maxlabellength=0;
 	for (int i=0; i<numnodes; i++) {
 		if (nodelabels[i].size()>maxlabellength) {
@@ -664,6 +698,7 @@ int main (int argc, char *argv[]) {
 		}
 		cout << arsequences[i] << endl;
 	}
+	//}
 	
 	return 0;
 }
