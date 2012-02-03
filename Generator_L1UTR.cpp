@@ -138,7 +138,7 @@ TreeNode *ParseTree (string Newick) {    //generates a new tree from a string in
 		}
 	}
 	zerocommas[commanum]=Newick.size()-startpos;     //last child ends at the end of the string
-	if (zerocommas[2] != 0) {
+	if (zerocommas[2] != 0 || startpos==1) {
 		newtree->leaf=0;     //if we write something in zerocommas[2] there must be at least one child
 		for (int i=0; i<MAXCHILDREN; i++) {
 			if (zerocommas[i+1] != 0) {    //loop through all the depth 0 commas
@@ -285,7 +285,15 @@ int findheight(TreeNode *root) {
 		height=0;
 	}
 	else {
-		height=max(findheight(root->children[0]),findheight(root->children[1]))+1;
+		height=0;
+		for (int i=0; i<MAXCHILDREN; i++) {
+			if (root->children[i]!=NULL) {
+				int childheight=findheight(root->children[i]);
+				if (childheight +1 > height) {
+					height = childheight +1;
+				}
+			}
+		}
 	}
 	return height;
 }
